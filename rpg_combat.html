@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tower of Trials RPG Combat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: #1a1a1a;
+    color: #f0f0f0;
+    font-family: 'Courier New', Courier, monospace;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+  #floor-header {
+    border-bottom: 1px solid #333;
+    background: #141414;
+    padding: 10px 16px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  #floor-title { color: #f1c40f; font-size: 1.35rem; font-weight: bold; }
+  #floor-subtitle { color: #aaa; font-size: 0.9rem; margin-top: 2px; }
+  #main-area { display: flex; flex: 1; overflow: hidden; }
+  #stats-panel {
+    width: 280px;
+    min-width: 280px;
+    border-right: 1px solid #333;
+    padding: 12px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  #stats-panel h2 {
+    font-size: 1.05rem;
+    margin-bottom: 6px;
+    border-bottom: 1px solid #444;
+    padding-bottom: 4px;
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 3px 0;
+    border-bottom: 1px solid #2a2a2a;
+    font-size: 0.88rem;
+  }
+  .stat-label { color: #aaa; }
+  .stat-value { color: #fff; font-weight: bold; text-align: right; }
+  .stat-value.bonus { color: #2ecc71; }
+  #hp-bar-container { margin-top: 6px; margin-bottom: 8px; }
+  #hp-bar-outer {
+    width: 100%; height: 14px; background: #333;
+    border: 1px solid #555; border-radius: 2px; overflow: hidden;
+  }
+  #hp-bar-inner { height: 100%; background: #c0392b; width: 100%; transition: width 0.2s; }
+  #hp-text { text-align: center; font-size: 0.8rem; margin-top: 2px; }
+  #gear-summary {
+    border: 1px solid #333; background: #151515;
+    padding: 6px; margin-bottom: 8px;
+    font-size: 0.78rem; line-height: 1.4;
+  }
+  #gear-summary .gear-line { color: #bdc3c7; }
+  #gear-summary .gear-empty { color: #666; font-style: italic; }
+  #exp-bar-container { margin: 4px 0 8px; }
+  #exp-bar-outer {
+    width: 100%; height: 7px; background: #333;
+    border: 1px solid #555; border-radius: 2px; overflow: hidden;
+  }
+  #exp-bar-inner { height: 100%; width: 0%; background: #f1c40f; transition: width 0.2s; }
+  .monster-health { color: #f0f0f0; font-weight: bold; }
+  .monster-health .bar { color: #e74c3c; letter-spacing: 1px; }
+  .item-name { color: #2ecc71; font-weight: bold; }
+  .item-stat { color: #aaa; font-size: 0.8rem; }
+  .slot-label { color: #aaa; }
+  .mini-btn {
+    background: #7f8c8d; color: #fff; border: none;
+    padding: 3px 7px; font-family: inherit; font-size: 0.75rem;
+    cursor: pointer; border-radius: 2px; white-space: nowrap;
+  }
+  .mini-btn:hover:not(:disabled) { background: #707b7c; }
+  .mini-btn.buy { background: #27ae60; }
+  .mini-btn.buy:hover:not(:disabled) { background: #229954; }
+  .mini-btn.sell { background: #c0392b; }
+  .mini-btn.sell:hover:not(:disabled) { background: #a93226; }
+  .mini-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+  #log-panel { flex: 1; display: flex; flex-direction: column; padding: 12px; overflow: hidden; }
+  #log-panel h2 {
+    font-size: 1.1rem; margin-bottom: 8px;
+    border-bottom: 1px solid #444; padding-bottom: 4px; flex-shrink: 0;
+  }
+  #tower-panel {
+    margin-bottom: 8px; border: 1px solid #333;
+    background: #151515; padding: 8px; flex-shrink: 0;
+  }
+  #tower-panel h3 { font-size: 1rem; margin-bottom: 6px; color: #9b59b6; }
+  #floor-preview { color: #bdc3c7; font-size: 0.9rem; margin-bottom: 4px; }
+  #floor-status { color: #aaa; font-size: 0.85rem; }
+  #combat-log {
+    flex: 1; border: 1px solid #333; background: #111;
+    padding: 8px; overflow-y: auto; font-size: 0.88rem; line-height: 1.5;
+    min-height: 0;
+  }
+  .log-entry { margin-bottom: 3px; }
+  .log-damage { color: #e74c3c; }
+  .log-dealt { color: #f1c40f; }
+  .log-heal { color: #2ecc71; }
+  .log-levelup { color: #00e5ff; }
+  .log-skill { color: #3498db; }
+  .log-enemy { color: #f87264; }
+  .log-system { color: #bdc3c7; }
+  .log-crit { color: #ffb300; font-weight: bold; }
+  .log-loot { color: #ffd700; }
+  .log-split { color: #9b59b6; }
+  .log-gold { color: #ffd700; }
+  #action-bar {
+    border-top: 1px solid #333; padding: 10px 16px;
+    display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; flex-shrink: 0;
+  }
+  .action-btn {
+    background: #2c3e50; color: #fff; border: 1px solid #34495e;
+    padding: 8px 14px; font-family: inherit; font-size: 0.9rem;
+    cursor: pointer; border-radius: 3px; min-width: 110px;
+  }
+  .action-btn:hover:not(:disabled) { background: #34495e; }
+  .action-btn:disabled { background: #222; color: #666; border-color: #333; cursor: not-allowed; }
+  .action-btn.primary { background: #8e44ad; border-color: #7d3c98; }
+  .action-btn.primary:hover:not(:disabled) { background: #7d3c98; }
+  .action-btn.shop { background: #8a6d1d; border-color: #705816; }
+  .action-btn.shop:hover:not(:disabled) { background: #705816; }
+  .action-btn.bag { background: #2e6b4f; border-color: #256b4a; }
+  .action-btn.bag:hover:not(:disabled) { background: #256b4a; }
+  #defeat-overlay, #shop-overlay, #floor-select-overlay, #loot-overlay, #bag-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85); display: none;
+    align-items: center; justify-content: center; z-index: 100;
+  }
+  #defeat-overlay.active, #shop-overlay.active, #floor-select-overlay.active,
+  #loot-overlay.active, #bag-overlay.active { display: flex; }
+  #defeat-overlay { flex-direction: column; text-align: center; }
+  @keyframes deathDrop {
+    from { opacity: 0; transform: translateY(-40px) scale(0.85); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  #defeat-box { animation: deathDrop 0.45s cubic-bezier(.22,.68,0,1.4) both; }
+  #defeat-overlay h1 { color: #c0392b; font-size: 3rem; margin-bottom: 10px; text-shadow: 0 0 24px #c0392b88; }
+  #defeat-gold-lost { color: #ffd700; font-size: 1.05rem; margin-bottom: 20px; min-height: 1.4em; }
+  #restart-btn {
+    background: #c0392b; color: #fff; border: none;
+    padding: 14px 32px; font-family: inherit; font-size: 1.1rem;
+    cursor: pointer; border-radius: 3px; margin: 0 6px;
+  }
+  #restart-btn:hover { background: #a93226; }
+  #camp-btn {
+    background: #2c3e50; color: #fff; border: 1px solid #34495e;
+    padding: 14px 32px; font-family: inherit; font-size: 1.1rem;
+    cursor: pointer; border-radius: 3px; margin: 0 6px;
+  }
+  #camp-btn:hover { background: #34495e; }
+  #shop-modal, #floor-select-modal, #loot-modal, #bag-modal {
+    width: min(540px, calc(100vw - 32px));
+    background: #171717; border: 1px solid #444;
+    padding: 16px; border-radius: 3px;
+  }
+  #shop-modal, #floor-select-modal, #bag-modal { max-height: 82vh; overflow-y: auto; }
+  #shop-modal h2, #floor-select-modal h2, #loot-modal h2, #bag-modal h2 {
+    color: #f1c40f; font-size: 1.2rem; margin-bottom: 10px;
+  }
+  .shop-row {
+    display: grid; grid-template-columns: 1fr auto auto;
+    gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid #2d2d2d;
+  }
+  .shop-desc { color: #aaa; font-size: 0.82rem; margin-top: 2px; }
+  #shop-footer, #bag-footer {
+    display: flex; justify-content: space-between; align-items: center; margin-top: 12px;
+  }
+  #shop-sell-section { border-top: 1px solid #444; margin-top: 10px; padding-top: 10px; }
+  #shop-sell-section h3 { color: #e67e22; font-size: 0.95rem; margin-bottom: 6px; }
+  .sell-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0; border-top: 1px solid #2a2a2a; font-size: 0.88rem;
+  }
+  .sell-row .sell-name { color: #bdc3c7; }
+  #floor-buttons { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 12px; }
+  .floor-choice {
+    width: 100%; text-align: left; background: #222; color: #fff;
+    border: 1px solid #444; padding: 10px; font-family: inherit;
+    cursor: pointer; border-radius: 3px;
+  }
+  .floor-choice:hover:not(:disabled) { background: #2c3e50; }
+  .floor-choice:disabled { color: #666; cursor: not-allowed; background: #191919; }
+  .floor-choice small { display: block; color: #aaa; margin-top: 3px; }
+  #loot-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }
+  .bag-slot {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 7px 8px; border: 1px solid #333; background: #222;
+    margin-bottom: 4px; border-radius: 2px; gap: 6px; font-size: 0.88rem;
+  }
+  .bag-slot .empty { color: #666; font-style: italic; }
+  .bag-slot .bag-btns { display: flex; gap: 4px; flex-shrink: 0; }
+  .bag-equip-section { margin-top: 10px; padding-top: 8px; border-top: 1px solid #444; }
+  .bag-equip-section h3 { font-size: 0.95rem; margin-bottom: 6px; color: #f1c40f; }
+</style>
+</head>
+<body>
+
+<div id="floor-header">
+  <div id="floor-title">Tower of Trials - Floor 1</div>
+  <div id="floor-subtitle">Prepare, then ascend.</div>
+</div>
+
+<div id="main-area">
+  <div id="stats-panel">
+    <h2>Swordsman ★1</h2>
+    <div id="hp-bar-container">
+      <div id="hp-bar-outer"><div id="hp-bar-inner"></div></div>
+      <div id="hp-text"></div>
+    </div>
+    <div id="gear-summary"></div>
+    <div class="stat-row"><span class="stat-label">Level</span><span class="stat-value" id="st-level">1</span></div>
+    <div class="stat-row"><span class="stat-label">ATK</span><span><span class="stat-value" id="st-atk">12</span><span class="stat-value bonus" id="st-atk-bonus" style="display:none"></span></span></div>
+    <div class="stat-row"><span class="stat-label">AGI</span><span><span class="stat-value" id="st-agi">10</span><span class="stat-value bonus" id="st-agi-bonus" style="display:none"></span></span></div>
+    <div class="stat-row"><span class="stat-label">DEF</span><span><span class="stat-value" id="st-def">8</span><span class="stat-value bonus" id="st-def-bonus" style="display:none"></span></span></div>
+    <div class="stat-row"><span class="stat-label">INT</span><span class="stat-value" id="st-int">4</span></div>
+    <div class="stat-row"><span class="stat-label">VIT</span><span class="stat-value" id="st-vit">50</span></div>
+    <div class="stat-row"><span class="stat-label">MP</span><span class="stat-value" id="st-mp">20</span></div>
+    <div class="stat-row"><span class="stat-label">Gold</span><span class="stat-value" id="st-gold">0</span></div>
+    <div class="stat-row"><span class="stat-label">Potions</span><span class="stat-value" id="st-potions">1</span></div>
+    <div class="stat-row"><span class="stat-label">EXP</span><span class="stat-value" id="st-exp">0</span></div>
+    <div class="stat-row"><span class="stat-label">Next Lv</span><span class="stat-value" id="st-expneed">10</span></div>
+    <div id="exp-bar-container">
+      <div id="exp-bar-outer"><div id="exp-bar-inner"></div></div>
+    </div>
+  </div>
+
+  <div id="log-panel">
+    <h2>Combat Log</h2>
+    <div id="tower-panel">
+      <h3>Floor Preview</h3>
+      <div id="floor-preview"></div>
+      <div id="floor-status"></div>
+    </div>
+    <div id="combat-log"></div>
+  </div>
+</div>
+
+<div id="action-bar">
+  <button class="action-btn" id="btn-attack">Attack</button>
+  <button class="action-btn" id="btn-slash">Skill: Slash</button>
+  <button class="action-btn" id="btn-guard">Skill: Guard</button>
+  <button class="action-btn" id="btn-potion">Use Potion</button>
+  <button class="action-btn primary" id="btn-power" style="display:none">Skill: Power Strike</button>
+  <button class="action-btn primary" id="btn-ascend">Ascend</button>
+  <button class="action-btn primary" id="btn-rest">Rest</button>
+  <button class="action-btn primary" id="btn-push">Push Deeper</button>
+  <button class="action-btn" id="btn-retreat">Retreat</button>
+  <button class="action-btn bag" id="btn-bag">🎒 Bag</button>
+  <button class="action-btn shop" id="btn-shop">Shop</button>
+</div>
+
+<div id="defeat-overlay">
+  <div id="defeat-box">
+    <h1>☠ You Died</h1>
+    <div id="defeat-gold-lost"></div>
+    <div>
+      <button id="camp-btn">Return to Camp</button>
+      <button id="restart-btn">New Game</button>
+    </div>
+  </div>
+</div>
+
+<div id="shop-overlay">
+  <div id="shop-modal">
+    <h2>Shop</h2>
+    <div class="shop-row">
+      <div><strong>Health Potion</strong><div class="shop-desc">Restores 30 HP in combat.</div></div>
+      <span>15 gold</span>
+      <button class="mini-btn buy" id="buy-potion">Buy</button>
+    </div>
+    <div class="shop-row">
+      <div><strong>Leather Armor</strong><div class="shop-desc">Armor, +3 DEF.</div></div>
+      <span>50 gold</span>
+      <button class="mini-btn buy" id="buy-leather">Buy</button>
+    </div>
+    <div class="shop-row">
+      <div><strong>Iron Sword</strong><div class="shop-desc">Weapon, +5 ATK.</div></div>
+      <span>80 gold</span>
+      <button class="mini-btn buy" id="buy-sword">Buy</button>
+    </div>
+    <div class="shop-row">
+      <div><strong>Leather Cap</strong><div class="shop-desc">Helmet, +2 DEF.</div></div>
+      <span>30 gold</span>
+      <button class="mini-btn buy" id="buy-cap">Buy</button>
+    </div>
+    <div class="shop-row">
+      <div><strong>Leather Boots</strong><div class="shop-desc">Boots, +2 AGI.</div></div>
+      <span>30 gold</span>
+      <button class="mini-btn buy" id="buy-boots">Buy</button>
+    </div>
+    <div class="shop-row">
+      <div><strong>Lucky Charm</strong><div class="shop-desc">Accessory, +5% crit chance.</div></div>
+      <span>50 gold</span>
+      <button class="mini-btn buy" id="buy-charm">Buy</button>
+    </div>
+    <div id="shop-sell-section"></div>
+    <div id="shop-footer">
+      <span>Gold: <strong id="shop-gold">0</strong></span>
+      <button class="mini-btn" id="close-shop">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="floor-select-overlay">
+  <div id="floor-select-modal">
+    <h2>Floor Selection</h2>
+    <div id="floor-select-note">Choose an unlocked floor to begin a run.</div>
+    <div id="floor-buttons"></div>
+  </div>
+</div>
+
+<div id="loot-overlay">
+  <div id="loot-modal">
+    <h2>Equipment Drop</h2>
+    <div id="loot-message"></div>
+    <div id="loot-actions">
+      <button class="mini-btn buy" id="loot-equip">Yes</button>
+      <button class="mini-btn" id="loot-keep">No</button>
+    </div>
+  </div>
+</div>
+
+<div id="bag-overlay">
+  <div id="bag-modal">
+    <h2>🎒 Inventory</h2>
+    <div id="bag-content"></div>
+    <div id="bag-footer">
+      <button class="mini-btn sell" id="btn-sell-all">Sell All</button>
+      <button class="mini-btn" id="close-bag">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Constants ─────────────────────────────────────── */
+const BASE_EXP = 10;
+const POWER_STRIKE_LEVEL = 10;
+const POWER_STRIKE_COOLDOWN = 3;
+const POTION_HEAL = 30;
+const POTION_DROP_CHANCE = 0.10;
+const RARE_ARMOR_DROP_CHANCE = 0.05;
+const BASIC_GEAR_DROP_CHANCE = 0.08;
+const ACCESSORY_DROP_CHANCE = 0.05;
+const MAX_FLOOR = 10;
+const SAVE_KEY = 'swordsmanRpgSave';
+const SAVE_VERSION = 4;
+const EQUIPMENT_SLOTS = ['weapon', 'armor', 'helmet', 'boots', 'accessory'];
+const MAX_BAG_SLOTS = 5;
+const MAX_POTION_STACK = 10;
+
+const MONSTER_TEMPLATES = {
+  goblin: { name: 'Goblin', rank: 'H', hp: 30, atk: 8, def: 3, exp: 5, gold: 3 },
+  slime:  { name: 'Slime',  rank: 'H', hp: 40, atk: 5, def: 6, exp: 5, gold: 2, splits: true },
+  wolf:   { name: 'Wolf',   rank: 'G', hp: 60, atk: 14, def: 4, exp: 20, gold: 12 },
+  orc:    { name: 'Orc',    rank: 'G', hp: 80, atk: 12, def: 7, exp: 20, gold: 15 },
+  ogre:   { name: 'Ogre',   rank: 'F', hp: 150, atk: 18, def: 10, exp: 80, gold: 50, isBoss: true },
+  giantSpider: { name: 'Giant Spider', rank: 'F', hp: 120, atk: 22, def: 8, exp: 45, gold: 30 },
+  skeletonKnight: { name: 'Skeleton Knight', rank: 'E', hp: 180, atk: 28, def: 14, exp: 60, gold: 40 },
+  minotaur: { name: 'Minotaur', rank: 'E', hp: 280, atk: 35, def: 18, exp: 150, gold: 100, isBoss: true }
+};
+
+const ITEMS = {
+  ironSword: { name: 'Iron Sword', slot: 'weapon', atkBonus: 5, defBonus: 0, statText: '+5 ATK' },
+  leatherArmor: { name: 'Leather Armor', slot: 'armor', atkBonus: 0, defBonus: 3, statText: '+3 DEF' },
+  chainmail: { name: 'Chainmail', slot: 'armor', atkBonus: 0, defBonus: 6, statText: '+6 DEF' },
+  leatherCap: { name: 'Leather Cap', slot: 'helmet', atkBonus: 0, defBonus: 2, agiBonus: 0, critBonus: 0, statText: '+2 DEF' },
+  ironHelm: { name: 'Iron Helm', slot: 'helmet', atkBonus: 0, defBonus: 4, agiBonus: 0, critBonus: 0, statText: '+4 DEF' },
+  leatherBoots: { name: 'Leather Boots', slot: 'boots', atkBonus: 0, defBonus: 0, agiBonus: 2, critBonus: 0, statText: '+2 AGI' },
+  ironGreaves: { name: 'Iron Greaves', slot: 'boots', atkBonus: 0, defBonus: 1, agiBonus: 3, critBonus: 0, statText: '+3 AGI, +1 DEF' },
+  luckyCharm: { name: 'Lucky Charm', slot: 'accessory', atkBonus: 0, defBonus: 0, agiBonus: 0, critBonus: 0.05, statText: '+5% crit' },
+  warriorsRing: { name: "Warrior's Ring", slot: 'accessory', atkBonus: 2, defBonus: 1, agiBonus: 0, critBonus: 0, statText: '+2 ATK, +1 DEF' },
+  steelSword: { name: 'Steel Sword', slot: 'weapon', atkBonus: 8, defBonus: 0, agiBonus: 0, critBonus: 0, statText: '+8 ATK' },
+  guardianAmulet: { name: 'Guardian Amulet', slot: 'accessory', atkBonus: 0, defBonus: 3, agiBonus: 0, critBonus: 0.03, statText: '+3 DEF, +3% crit' }
+};
+
+const SHOP_ITEMS = {
+  potion: { cost: 15 },
+  leatherArmor: { cost: 50 },
+  ironSword: { cost: 80 },
+  leatherCap: { cost: 30 },
+  leatherBoots: { cost: 30 },
+  luckyCharm: { cost: 50 }
+};
+
+const SELL_PRICES = {
+  potion: 3, ironSword: 16, leatherArmor: 10, leatherCap: 6,
+  ironHelm: 14, leatherBoots: 6, ironGreaves: 14, luckyCharm: 10,
+  warriorsRing: 12, chainmail: 14, steelSword: 20, guardianAmulet: 16
+};
+
+const FLOOR_PLANS = {
+  1: ['goblin', 'slime'],
+  2: ['slime', 'goblin', 'goblin'],
+  3: ['wolf', 'wolf', 'orc'],
+  4: ['orc', 'wolf', 'orc', 'wolf'],
+  5: ['ogre'],
+  6: ['giantSpider', 'giantSpider', 'orc'],
+  7: ['giantSpider', 'skeletonKnight', 'giantSpider'],
+  8: ['skeletonKnight', 'skeletonKnight', 'ogre'],
+  9: ['skeletonKnight', 'giantSpider', 'skeletonKnight', 'ogre'],
+  10: ['minotaur']
+};
+
+/* ── State ─────────────────────────────────────────── */
+let player = {
+  level: 1, atk: 12, agi: 10, def: 8, int: 4, vit: 50, mp: 20,
+  exp: 0, gold: 0, hp: 0, maxHp: 0,
+  powerStrikeCooldown: 0, guardActive: false,
+  equipment: createEmptySlots(),
+  bag: createEmptyBag()
+};
+
+let monster = emptyMonster();
+let tower = {
+  floor: 1, phase: 'ready', currentIndex: 0,
+  floorPlan: [...FLOOR_PLANS[1]], moreComing: false,
+  highestFloorReached: 1, unlockedFloors: [1]
+};
+let pendingLootKey = null;
+let pendingLootQueue = [];
+
+/* ── Helpers ───────────────────────────────────────── */
+function emptyMonster() {
+  return { templateKey: null, name: '', rank: '', hp: 0, maxHp: 0,
+    atk: 0, def: 0, expReward: 0, goldReward: 0,
+    splits: false, isMini: false, isBoss: false };
+}
+
+function createEmptySlots() {
+  return { weapon: null, armor: null, helmet: null, boots: null, accessory: null };
+}
+
+function normalizeSlots(savedSlots) {
+  const slots = createEmptySlots();
+  EQUIPMENT_SLOTS.forEach(slot => {
+    slots[slot] = savedSlots && savedSlots[slot] ? savedSlots[slot] : null;
+  });
+  return slots;
+}
+
+function createEmptyBag() {
+  return new Array(MAX_BAG_SLOTS).fill(null);
+}
+
+function itemFromKey(key) { return key && ITEMS[key] ? ITEMS[key] : null; }
+
+function normalizeUnlockedFloors(savedFloors, highestFloor) {
+  const unlocked = new Set(Array.isArray(savedFloors) ? savedFloors : []);
+  for (let f = 1; f <= Math.min(highestFloor, MAX_FLOOR); f++) unlocked.add(f);
+  return [...unlocked].filter(f => f >= 1 && f <= MAX_FLOOR).sort((a, b) => a - b);
+}
+
+function unlockFloor(floor) {
+  if (floor < 1 || floor > MAX_FLOOR) return;
+  tower.highestFloorReached = Math.max(tower.highestFloorReached || 1, floor);
+  tower.unlockedFloors = normalizeUnlockedFloors(tower.unlockedFloors, tower.highestFloorReached);
+}
+
+function formatSlotLabel(slot) { return slot.charAt(0).toUpperCase() + slot.slice(1); }
+
+/* ── Bag Functions ─────────────────────────────────── */
+function bagIsFull() { return player.bag.every(s => s !== null); }
+
+function getTotalPotions() {
+  return player.bag.reduce((t, s) => t + (s && s.type === 'potion' ? s.count : 0), 0);
+}
+
+function bagHasGear(key) {
+  return player.bag.some(s => s && s.type === 'gear' && s.key === key);
+}
+
+function addPotionToBag() {
+  for (let i = 0; i < MAX_BAG_SLOTS; i++) {
+    if (player.bag[i] && player.bag[i].type === 'potion' && player.bag[i].count < MAX_POTION_STACK) {
+      player.bag[i].count++;
+      return true;
+    }
+  }
+  for (let i = 0; i < MAX_BAG_SLOTS; i++) {
+    if (!player.bag[i]) {
+      player.bag[i] = { type: 'potion', count: 1 };
+      return true;
+    }
+  }
+  return false;
+}
+
+function addGearToBag(itemKey) {
+  for (let i = 0; i < MAX_BAG_SLOTS; i++) {
+    if (!player.bag[i]) {
+      player.bag[i] = { type: 'gear', key: itemKey };
+      return true;
+    }
+  }
+  return false;
+}
+
+function removeFirstPotion() {
+  for (let i = 0; i < MAX_BAG_SLOTS; i++) {
+    if (player.bag[i] && player.bag[i].type === 'potion') {
+      player.bag[i].count--;
+      if (player.bag[i].count <= 0) player.bag[i] = null;
+      return true;
+    }
+  }
+  return false;
+}
+
+function getSellPrice(slot) {
+  if (!slot) return 0;
+  if (slot.type === 'potion') return SELL_PRICES.potion || 0;
+  if (slot.type === 'gear') return SELL_PRICES[slot.key] || 0;
+  return 0;
+}
+
+/* ── Save / Load ───────────────────────────────────── */
+function saveGame() {
+  try {
+    const saveData = {
+      version: SAVE_VERSION,
+      player: {
+        level: player.level, atk: player.atk, agi: player.agi, def: player.def,
+        int: player.int, vit: player.vit, mp: player.mp,
+        exp: player.exp, gold: player.gold, hp: player.hp, maxHp: player.maxHp,
+        powerStrikeCooldown: player.powerStrikeCooldown, guardActive: player.guardActive,
+        equipment: { ...player.equipment },
+        bag: player.bag.map(s => s ? { ...s } : null)
+      },
+      monster: { ...monster },
+      tower: { ...tower, floorPlan: [...tower.floorPlan] }
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+  } catch (err) {
+    log('Save failed. Browser storage is unavailable.', 'system');
+  }
+}
+
+function migrateV3ToBag(savedPlayer) {
+  const bag = createEmptyBag();
+  let next = 0;
+  const potions = savedPlayer.potions || 0;
+  if (potions > 0 && next < MAX_BAG_SLOTS) {
+    bag[next++] = { type: 'potion', count: Math.min(potions, MAX_POTION_STACK) };
+    let rem = potions - MAX_POTION_STACK;
+    while (rem > 0 && next < MAX_BAG_SLOTS) {
+      bag[next++] = { type: 'potion', count: Math.min(rem, MAX_POTION_STACK) };
+      rem -= MAX_POTION_STACK;
+    }
+  }
+  const oldInv = savedPlayer.inventory;
+  if (oldInv) {
+    EQUIPMENT_SLOTS.forEach(slot => {
+      if (oldInv[slot] && next < MAX_BAG_SLOTS) {
+        bag[next++] = { type: 'gear', key: oldInv[slot] };
+      }
+    });
+  }
+  return bag;
+}
+
+function loadGame() {
+  try {
+    const rawSave = localStorage.getItem(SAVE_KEY);
+    if (!rawSave) return false;
+    const saveData = JSON.parse(rawSave);
+    if (!saveData || saveData.version < 2 || saveData.version > SAVE_VERSION) return false;
+
+    player.level = saveData.player.level;
+    player.atk = saveData.player.atk;
+    player.agi = saveData.player.agi;
+    player.def = saveData.player.def;
+    player.int = saveData.player.int;
+    player.vit = saveData.player.vit;
+    player.mp = saveData.player.mp;
+    player.exp = saveData.player.exp;
+    player.gold = saveData.player.gold || 0;
+    player.hp = saveData.player.hp;
+    player.maxHp = saveData.player.maxHp;
+    player.powerStrikeCooldown = saveData.player.powerStrikeCooldown || 0;
+    player.guardActive = saveData.player.guardActive || false;
+    player.equipment = normalizeSlots(saveData.player.equipment);
+
+    if (saveData.version < 4) {
+      player.bag = migrateV3ToBag(saveData.player);
+    } else {
+      player.bag = Array.isArray(saveData.player.bag)
+        ? saveData.player.bag.map(s => s ? { ...s } : null) : createEmptyBag();
+      while (player.bag.length < MAX_BAG_SLOTS) player.bag.push(null);
+      player.bag.length = MAX_BAG_SLOTS;
+    }
+
+    Object.assign(monster, saveData.monster || emptyMonster());
+    Object.assign(tower, saveData.tower);
+    tower.floorPlan = Array.isArray(saveData.tower?.floorPlan) ? [...saveData.tower.floorPlan] : getFloorPlan(tower.floor);
+    tower.highestFloorReached = saveData.tower?.highestFloorReached || Math.max(1, tower.floor || 1);
+    tower.unlockedFloors = normalizeUnlockedFloors(saveData.tower?.unlockedFloors, tower.highestFloorReached);
+    tower.moreComing = !!tower.moreComing;
+
+    recalcHp();
+    player.hp = Math.max(0, Math.min(player.hp, player.maxHp));
+    player.guardActive = false;
+    if (tower.phase === 'combat' && (!monster.name || monster.hp <= 0)) spawnCurrentFloorMonster();
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+/* ── Stat Calculations ─────────────────────────────── */
+function getTotalAtk() {
+  return player.atk + EQUIPMENT_SLOTS.reduce((t, s) => {
+    const item = itemFromKey(player.equipment[s]);
+    return t + (item ? item.atkBonus || 0 : 0);
+  }, 0);
+}
+function getTotalDef() {
+  return player.def + EQUIPMENT_SLOTS.reduce((t, s) => {
+    const item = itemFromKey(player.equipment[s]);
+    return t + (item ? item.defBonus || 0 : 0);
+  }, 0);
+}
+function getTotalAgi() {
+  return player.agi + EQUIPMENT_SLOTS.reduce((t, s) => {
+    const item = itemFromKey(player.equipment[s]);
+    return t + (item ? item.agiBonus || 0 : 0);
+  }, 0);
+}
+function getCritChance() {
+  return 0.10 + EQUIPMENT_SLOTS.reduce((t, s) => {
+    const item = itemFromKey(player.equipment[s]);
+    return t + (item ? item.critBonus || 0 : 0);
+  }, 0);
+}
+
+/* ── Player Init ───────────────────────────────────── */
+function initPlayer() {
+  player.level = 1; player.atk = 12; player.agi = 10; player.def = 8;
+  player.int = 4; player.vit = 50; player.mp = 20;
+  player.exp = 0; player.gold = 0;
+  player.powerStrikeCooldown = 0; player.guardActive = false;
+  player.equipment = createEmptySlots();
+  player.bag = createEmptyBag();
+  player.bag[0] = { type: 'potion', count: 1 };
+  recalcHp();
+}
+
+function recalcHp() {
+  player.maxHp = player.vit;
+  if (player.hp > player.maxHp) player.hp = player.maxHp;
+}
+
+function expNeeded(level) { return Math.round(BASE_EXP * Math.pow(level, 2.2)); }
+
+function levelUp() {
+  let needed = expNeeded(player.level);
+  while (player.exp >= needed) {
+    const oldLevel = player.level;
+    player.exp -= needed;
+    player.level++;
+    player.atk += 3; player.agi += 2; player.def += 2; player.vit += 3;
+    recalcHp();
+    player.hp = player.maxHp; player.mp = 20;
+    log('Level up! You are now level ' + player.level + '!', 'levelup');
+    playSound('levelup');
+    if (oldLevel < POWER_STRIKE_LEVEL && player.level >= POWER_STRIKE_LEVEL) {
+      log('New skill unlocked: Power Strike!', 'levelup');
+    }
+    needed = expNeeded(player.level);
+  }
+}
+
+/* ── Gear Summary ──────────────────────────────────── */
+function renderGearSummary() {
+  const summary = document.getElementById('gear-summary');
+  summary.innerHTML = EQUIPMENT_SLOTS.map(slot => {
+    const item = itemFromKey(player.equipment[slot]);
+    const value = item ? item.name + ' (' + item.statText + ')' : 'None';
+    const cls = item ? 'item-name' : 'gear-empty';
+    return '<div class="gear-line">' + formatSlotLabel(slot) + ': <span class="' + cls + '">' + value + '</span></div>';
+  }).join('');
+}
+
+function renderTextBar(current, max, width) {
+  const safeMax = Math.max(1, max);
+  const pct = Math.max(0, Math.min(1, current / safeMax));
+  const filled = Math.round(pct * width);
+  return '█'.repeat(filled) + '░'.repeat(width - filled);
+}
+
+function monsterHealthText() {
+  if (!monster.name) return '';
+  const currentHp = Math.max(0, monster.hp);
+  return monster.name + ' [' + renderTextBar(currentHp, monster.maxHp, 8) + '] ' + currentHp + '/' + monster.maxHp + ' HP';
+}
+
+/* ── Floor / Tower ─────────────────────────────────── */
+function getFloorPlan(floor) { return FLOOR_PLANS[floor] ? [...FLOOR_PLANS[floor]] : []; }
+
+function formatMonsterList(keys) {
+  const counts = {};
+  keys.forEach(key => {
+    const name = MONSTER_TEMPLATES[key].name;
+    counts[name] = (counts[name] || 0) + 1;
+  });
+  return Object.keys(counts).map(n => counts[n] + ' ' + n + (counts[n] > 1 ? 's' : '')).join(', ');
+}
+
+function setupFloor(floor) {
+  tower.floor = floor;
+  tower.phase = floor > MAX_FLOOR ? 'complete' : 'ready';
+  tower.currentIndex = 0;
+  tower.floorPlan = getFloorPlan(floor);
+  tower.moreComing = floor > MAX_FLOOR;
+  unlockFloor(floor);
+  monster = emptyMonster();
+  updateTowerUI(); updateStats(); disableButtons(false); saveGame();
+}
+
+function showFloorSelection() {
+  renderFloorSelection(); closeShop(); closeLootPrompt(); closeBag();
+  document.getElementById('floor-select-overlay').classList.add('active');
+  disableButtons(false);
+}
+
+function hideFloorSelection() {
+  document.getElementById('floor-select-overlay').classList.remove('active');
+}
+
+function renderFloorSelection() {
+  const buttonsEl = document.getElementById('floor-buttons');
+  const labels = {
+    1: ['Floor 1', 'H-rank, easy - recommended level 2+.'],
+    2: ['Floor 2', 'H-rank, easy - recommended level 2+.'],
+    3: ['Floor 3', 'G-rank, medium - recommended level 5+.'],
+    4: ['Floor 4', 'G-rank, medium - recommended level 5+.'],
+    5: ['Floor 5', 'F-rank Boss Ogre - recommended level 7+.'],
+    6: ['Floor 6', 'F-rank, hard - recommended level 7+.'],
+    7: ['Floor 7', 'F/E-rank, hard - recommended level 8+.'],
+    8: ['Floor 8', 'E-rank, very hard - recommended level 8+.'],
+    9: ['Floor 9', 'E-rank gauntlet - recommended level 9+.'],
+    10: ['Floor 10', 'E-rank Boss Minotaur - recommended level 10+.']
+  };
+  buttonsEl.innerHTML = '';
+  for (let f = 1; f <= MAX_FLOOR; f++) {
+    const btn = document.createElement('button');
+    btn.className = 'floor-choice';
+    btn.dataset.floor = f;
+    btn.disabled = !tower.unlockedFloors.includes(f);
+    btn.innerHTML = labels[f][0] + '<small>' + labels[f][1] + (btn.disabled ? ' Locked.' : '') + '</small>';
+    buttonsEl.appendChild(btn);
+  }
+  const cs = document.createElement('button');
+  cs.className = 'floor-choice'; cs.disabled = true;
+  cs.innerHTML = 'Floor 11+<small>Coming soon.</small>';
+  buttonsEl.appendChild(cs);
+}
+
+function selectFloor(floor) {
+  if (!tower.unlockedFloors.includes(floor)) return;
+  hideFloorSelection(); setupFloor(floor);
+  log('Selected floor ' + floor + '. Prepare, then ascend.', 'system');
+}
+
+function startFloor() {
+  if (tower.phase !== 'ready') return;
+  tower.phase = 'combat'; tower.currentIndex = 0; player.guardActive = false;
+  log('You ascend to floor ' + tower.floor + '.', 'system');
+  spawnCurrentFloorMonster(); updateTowerUI(); updateStats(); disableButtons(false); saveGame();
+}
+
+function spawnCurrentFloorMonster() {
+  const key = tower.floorPlan[tower.currentIndex];
+  if (!key) { clearFloor(); return; }
+  loadMonsterFromTemplate(key);
+  log('Floor ' + tower.floor + ' battle ' + (tower.currentIndex + 1) + '/' + tower.floorPlan.length + ': ' + monster.name + ' appears! (HP ' + monster.hp + ')', 'enemy');
+}
+
+function loadMonsterFromTemplate(key) {
+  const tmpl = MONSTER_TEMPLATES[key];
+  monster.templateKey = key; monster.name = tmpl.name; monster.rank = tmpl.rank;
+  monster.maxHp = tmpl.hp; monster.hp = tmpl.hp; monster.atk = tmpl.atk; monster.def = tmpl.def;
+  monster.expReward = tmpl.exp; monster.goldReward = tmpl.gold;
+  monster.splits = tmpl.splits || false; monster.isMini = false; monster.isBoss = tmpl.isBoss || false;
+}
+
+function spawnMiniSlime() {
+  const p = MONSTER_TEMPLATES.slime;
+  monster.templateKey = 'slime'; monster.name = 'Mini-Slime'; monster.rank = 'H';
+  monster.maxHp = Math.floor(p.hp / 2); monster.hp = monster.maxHp;
+  monster.atk = p.atk; monster.def = p.def;
+  monster.expReward = 0; monster.goldReward = 0;
+  monster.splits = false; monster.isMini = true; monster.isBoss = false;
+}
+
+function clearFloor() {
+  unlockFloor(tower.floor);
+  tower.phase = tower.floor >= MAX_FLOOR ? 'complete' : 'cleared';
+  monster = emptyMonster(); player.guardActive = false;
+  if (tower.floor >= MAX_FLOOR) {
+    tower.moreComing = true;
+    log('More floors coming soon.', 'levelup');
+  } else {
+    log('Floor ' + tower.floor + ' cleared. Rest or push deeper.', 'levelup');
+  }
+  updateTowerUI(); updateStats(); disableButtons(false); saveGame();
+}
+
+function restAfterFloor() {
+  if (tower.phase !== 'cleared' && tower.phase !== 'complete') return;
+  player.hp = player.maxHp; player.mp = 20; player.guardActive = false;
+  log('You rest and recover to full HP.', 'heal');
+  updateStats(); disableButtons(false); saveGame();
+}
+
+function pushDeeper() {
+  if (tower.phase !== 'cleared') return;
+  setupFloor(tower.floor + 1);
+  log('You prepare for floor ' + tower.floor + '.', 'system');
+}
+
+function retreatToSelection() {
+  if (tower.phase === 'combat') return;
+  player.hp = player.maxHp; player.mp = 20; player.guardActive = false;
+  tower.phase = 'select'; tower.currentIndex = 0;
+  tower.floorPlan = getFloorPlan(Math.min(tower.floor, MAX_FLOOR));
+  monster = emptyMonster();
+  log('You retreat from the tower and recover to full HP.', 'heal');
+  updateStats(); updateTowerUI(); saveGame(); showFloorSelection();
+}
+
+/* ── Death ─────────────────────────────────────────── */
+function handlePlayerDeath() {
+  const lostGold = Math.floor(player.gold * 0.10);
+  player.gold = Math.max(0, player.gold - lostGold);
+  player.hp = player.maxHp; player.mp = 20; player.guardActive = false;
+  monster = emptyMonster();
+  document.getElementById('defeat-gold-lost').textContent = lostGold > 0 ? 'You lost ' + lostGold + ' gold.' : 'No gold was lost.';
+  const box = document.getElementById('defeat-box');
+  box.style.animation = 'none'; box.offsetHeight; box.style.animation = '';
+  document.getElementById('defeat-overlay').classList.add('active');
+  playSound('die'); updateStats(); updateTowerUI(); saveGame();
+}
+
+function resolvePlayerDeath() {
+  tower.phase = 'select'; tower.currentIndex = 0;
+  document.getElementById('defeat-overlay').classList.remove('active');
+  log('You are defeated. You wake outside the tower.', 'damage');
+  updateTowerUI(); saveGame(); showFloorSelection();
+}
+
+/* ── Loot & Rewards ────────────────────────────────── */
+function awardMonsterRewards(defeatedMonster) {
+  if (defeatedMonster.expReward > 0 || defeatedMonster.goldReward > 0) {
+    player.exp += defeatedMonster.expReward;
+    player.gold += defeatedMonster.goldReward;
+    log('The ' + defeatedMonster.name + ' is defeated! You gain ' + defeatedMonster.expReward + ' EXP and ' + defeatedMonster.goldReward + ' gold.', 'gold');
+  } else {
+    log('The ' + defeatedMonster.name + ' is defeated!', 'system');
+  }
+}
+
+function handleMonsterDeath() {
+  const defeatedMonster = { ...monster };
+  const shouldSplit = monster.splits && !monster.isMini;
+  awardMonsterRewards(defeatedMonster);
+  tryDrops(defeatedMonster);
+  levelUp();
+  if (shouldSplit) {
+    spawnMiniSlime();
+    log('The Slime splits! A Mini-Slime appears! (HP ' + monster.hp + ')', 'split');
+  } else {
+    tower.currentIndex++;
+    if (defeatedMonster.isBoss && defeatedMonster.name === 'Ogre') {
+      log("Boss loot! The Ogre drops Chainmail, an Iron Helm, Iron Greaves, and a Warrior's Ring.", 'loot');
+      receiveEquipment('chainmail', true);
+      receiveEquipment('ironHelm', true);
+      receiveEquipment('ironGreaves', true);
+      receiveEquipment('warriorsRing', true);
+    }
+    if (defeatedMonster.isBoss && defeatedMonster.name === 'Minotaur') {
+      log('Boss loot! The Minotaur drops a Steel Sword and a Guardian Amulet.', 'loot');
+      receiveEquipment('steelSword', true);
+      receiveEquipment('guardianAmulet', true);
+    }
+    if (tower.currentIndex >= tower.floorPlan.length) clearFloor();
+    else spawnCurrentFloorMonster();
+  }
+}
+
+function tryDrops(defeatedMonster) {
+  if (defeatedMonster.isMini) return;
+  if (!defeatedMonster.isBoss && Math.random() < POTION_DROP_CHANCE) {
+    if (addPotionToBag()) {
+      log('The ' + defeatedMonster.name + ' dropped a Health Potion!', 'heal');
+    } else {
+      log('The ' + defeatedMonster.name + ' dropped a Health Potion, but your bag is full!', 'system');
+    }
+  }
+  /* Floors 1-4: leather tier drops */
+  if (tower.floor < 5 && Math.random() < RARE_ARMOR_DROP_CHANCE) {
+    log('Rare drop! Leather Armor fell from the ' + defeatedMonster.name + '.', 'loot');
+    receiveEquipment('leatherArmor', true);
+  }
+  if (tower.floor < 5 && Math.random() < BASIC_GEAR_DROP_CHANCE) {
+    log('Equipment drop! Leather Cap fell from the ' + defeatedMonster.name + '.', 'loot');
+    receiveEquipment('leatherCap', true);
+  }
+  if (tower.floor < 5 && Math.random() < BASIC_GEAR_DROP_CHANCE) {
+    log('Equipment drop! Leather Boots fell from the ' + defeatedMonster.name + '.', 'loot');
+    receiveEquipment('leatherBoots', true);
+  }
+  if ((tower.floor === 3 || tower.floor === 4) && Math.random() < ACCESSORY_DROP_CHANCE) {
+    log('Rare drop! Lucky Charm fell from the ' + defeatedMonster.name + '.', 'loot');
+    receiveEquipment('luckyCharm', true);
+  }
+  /* Floors 6-9: iron tier drops */
+  if (tower.floor >= 6 && tower.floor < 10 && !defeatedMonster.isBoss) {
+    if (Math.random() < RARE_ARMOR_DROP_CHANCE) {
+      log('Rare drop! Iron Sword fell from the ' + defeatedMonster.name + '.', 'loot');
+      receiveEquipment('ironSword', true);
+    }
+    if (Math.random() < RARE_ARMOR_DROP_CHANCE) {
+      log('Rare drop! Chainmail fell from the ' + defeatedMonster.name + '.', 'loot');
+      receiveEquipment('chainmail', true);
+    }
+    if (Math.random() < BASIC_GEAR_DROP_CHANCE) {
+      log('Equipment drop! Iron Helm fell from the ' + defeatedMonster.name + '.', 'loot');
+      receiveEquipment('ironHelm', true);
+    }
+    if (Math.random() < BASIC_GEAR_DROP_CHANCE) {
+      log('Equipment drop! Iron Greaves fell from the ' + defeatedMonster.name + '.', 'loot');
+      receiveEquipment('ironGreaves', true);
+    }
+    if (Math.random() < ACCESSORY_DROP_CHANCE) {
+      log("Rare drop! Warrior's Ring fell from the " + defeatedMonster.name + '.', 'loot');
+      receiveEquipment('warriorsRing', true);
+    }
+  }
+}
+
+/* ── Equipment Receive / Loot ──────────────────────── */
+function receiveEquipment(itemKey, promptWhenOccupied) {
+  const item = itemFromKey(itemKey);
+  if (!item) return false;
+  if (player.equipment[item.slot] === itemKey || bagHasGear(itemKey)) {
+    log('You already have ' + item.name + '.', 'loot');
+    return false;
+  }
+  if (!player.equipment[item.slot]) {
+    player.equipment[item.slot] = itemKey;
+    log('Auto-equipped ' + item.name + ' (' + item.statText + ').', 'loot');
+    updateStats();
+    return true;
+  }
+  if (promptWhenOccupied) {
+    queueLootPrompt(itemKey);
+    return true;
+  }
+  if (addGearToBag(itemKey)) {
+    log(item.name + ' added to bag.', 'loot');
+    return true;
+  }
+  log('No room for ' + item.name + '.', 'loot');
+  return false;
+}
+
+function queueLootPrompt(itemKey) {
+  pendingLootQueue.push(itemKey);
+  if (!pendingLootKey) showNextLootPrompt();
+}
+
+function showNextLootPrompt() {
+  pendingLootKey = pendingLootQueue.shift() || null;
+  if (!pendingLootKey) { closeLootPrompt(); return; }
+  const item = itemFromKey(pendingLootKey);
+  document.getElementById('loot-message').textContent = 'Equip ' + item.name + ' (' + item.statText + ')?';
+  document.getElementById('loot-overlay').classList.add('active');
+}
+
+function closeLootPrompt() { document.getElementById('loot-overlay').classList.remove('active'); }
+
+function acceptLootPrompt() {
+  if (!pendingLootKey) return;
+  const item = itemFromKey(pendingLootKey);
+  const oldItemKey = player.equipment[item.slot];
+  player.equipment[item.slot] = pendingLootKey;
+  if (oldItemKey) {
+    if (addGearToBag(oldItemKey)) {
+      log(ITEMS[oldItemKey].name + ' moved to bag.', 'loot');
+    } else {
+      log(ITEMS[oldItemKey].name + ' was lost (bag full).', 'loot');
+    }
+  }
+  log('Equipped ' + item.name + ' (' + item.statText + ').', 'loot');
+  pendingLootKey = null;
+  updateStats(); saveGame(); showNextLootPrompt();
+}
+
+function declineLootPrompt() {
+  if (!pendingLootKey) return;
+  const item = itemFromKey(pendingLootKey);
+  if (addGearToBag(pendingLootKey)) {
+    log(item.name + ' added to bag.', 'loot');
+  } else {
+    log(item.name + ' was left behind (bag full).', 'loot');
+  }
+  pendingLootKey = null;
+  saveGame(); showNextLootPrompt();
+}
+
+/* ── Bag UI ────────────────────────────────────────── */
+function openBag() {
+  closeShop(); closeLootPrompt();
+  renderBagUI();
+  document.getElementById('bag-overlay').classList.add('active');
+}
+
+function closeBag() { document.getElementById('bag-overlay').classList.remove('active'); }
+
+function renderBagUI() {
+  const content = document.getElementById('bag-content');
+  const used = player.bag.filter(s => s !== null).length;
+  let html = '<h3 style="color:#aaa;font-size:0.9rem;margin-bottom:6px;">Bag (' + used + '/' + MAX_BAG_SLOTS + ')</h3>';
+  for (let i = 0; i < MAX_BAG_SLOTS; i++) {
+    const slot = player.bag[i];
+    html += '<div class="bag-slot">';
+    if (!slot) {
+      html += '<span class="empty">Slot ' + (i + 1) + ': Empty</span>';
+    } else if (slot.type === 'potion') {
+      html += '<span><span class="item-name">Health Potion</span> x' + slot.count + '</span>';
+      html += '<span class="bag-btns">';
+      html += '<button class="mini-btn sell" onclick="sellBagSlot(' + i + ')">Sell (' + SELL_PRICES.potion + 'g)</button>';
+      html += '<button class="mini-btn" onclick="dropBagSlot(' + i + ')">Drop</button>';
+      html += '</span>';
+    } else {
+      const item = ITEMS[slot.key];
+      const price = SELL_PRICES[slot.key] || 0;
+      html += '<span><span class="item-name">' + item.name + '</span> <span class="item-stat">(' + item.statText + ')</span></span>';
+      html += '<span class="bag-btns">';
+      html += '<button class="mini-btn buy" onclick="equipFromBag(' + i + ')">Equip</button>';
+      if (price > 0) html += '<button class="mini-btn sell" onclick="sellBagSlot(' + i + ')">Sell (' + price + 'g)</button>';
+      html += '<button class="mini-btn" onclick="dropBagSlot(' + i + ')">Drop</button>';
+      html += '</span>';
+    }
+    html += '</div>';
+  }
+  html += '<div class="bag-equip-section"><h3>Equipped</h3>';
+  EQUIPMENT_SLOTS.forEach(slot => {
+    const itemKey = player.equipment[slot];
+    const item = itemFromKey(itemKey);
+    const label = formatSlotLabel(slot);
+    html += '<div class="bag-slot">';
+    if (item) {
+      html += '<span><span class="slot-label">' + label + ':</span> <span class="item-name">' + item.name + '</span> <span class="item-stat">(' + item.statText + ')</span></span>';
+      html += '<button class="mini-btn" onclick="unequipFromBag(\'' + slot + '\')">Unequip</button>';
+    } else {
+      html += '<span><span class="slot-label">' + label + ':</span> <span class="empty">None</span></span>';
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+  content.innerHTML = html;
+}
+
+function equipFromBag(index) {
+  const slot = player.bag[index];
+  if (!slot || slot.type !== 'gear') return;
+  const item = ITEMS[slot.key];
+  const equipSlot = item.slot;
+  const oldKey = player.equipment[equipSlot];
+  player.equipment[equipSlot] = slot.key;
+  if (oldKey) {
+    player.bag[index] = { type: 'gear', key: oldKey };
+    log('Swapped: equipped ' + item.name + ', ' + ITEMS[oldKey].name + ' to bag.', 'loot');
+  } else {
+    player.bag[index] = null;
+    log('Equipped ' + item.name + ' (' + item.statText + ').', 'loot');
+  }
+  updateStats(); renderBagUI(); saveGame();
+}
+
+function unequipFromBag(slot) {
+  const itemKey = player.equipment[slot];
+  if (!itemKey) return;
+  if (bagIsFull()) {
+    log('Bag is full. Cannot unequip.', 'system');
+    renderBagUI();
+    return;
+  }
+  addGearToBag(itemKey);
+  player.equipment[slot] = null;
+  log('Unequipped ' + ITEMS[itemKey].name + '.', 'loot');
+  updateStats(); renderBagUI(); saveGame();
+}
+
+function dropBagSlot(index) {
+  const slot = player.bag[index];
+  if (!slot) return;
+  if (slot.type === 'potion') log('Dropped Health Potion stack (x' + slot.count + ').', 'system');
+  else log('Dropped ' + ITEMS[slot.key].name + '.', 'system');
+  player.bag[index] = null;
+  updateStats(); renderBagUI(); saveGame();
+}
+
+function sellBagSlot(index) {
+  const slot = player.bag[index];
+  if (!slot) return;
+  const price = getSellPrice(slot);
+  if (price <= 0) return;
+  if (slot.type === 'potion') {
+    player.gold += price;
+    slot.count--;
+    if (slot.count <= 0) player.bag[index] = null;
+    log('Sold 1 Health Potion for ' + price + ' gold.', 'gold');
+  } else {
+    player.gold += price;
+    log('Sold ' + ITEMS[slot.key].name + ' for ' + price + ' gold.', 'gold');
+    player.bag[index] = null;
+  }
+  updateStats(); updateShopUI(); renderBagUI(); saveGame();
+}
+
+function sellAllBag() {
+  let totalGold = 0, count = 0;
+  for (let i = 0; i < MAX_BAG_SLOTS; i++) {
+    const slot = player.bag[i];
+    if (!slot) continue;
+    const price = getSellPrice(slot);
+    if (price <= 0) continue;
+    if (slot.type === 'potion') { totalGold += price * slot.count; count += slot.count; }
+    else { totalGold += price; count++; }
+    player.bag[i] = null;
+  }
+  if (count > 0) {
+    player.gold += totalGold;
+    log('Sold ' + count + ' item(s) for ' + totalGold + ' gold.', 'gold');
+  } else {
+    log('Nothing to sell.', 'system');
+  }
+  updateStats(); updateShopUI(); renderBagUI(); saveGame();
+}
+
+/* ── Shop ──────────────────────────────────────────── */
+function buyPotion() {
+  if (player.gold < SHOP_ITEMS.potion.cost) {
+    log('Not enough gold for a Health Potion.', 'system'); return;
+  }
+  if (!addPotionToBag()) {
+    log('Bag is full. Cannot buy Health Potion.', 'system'); return;
+  }
+  player.gold -= SHOP_ITEMS.potion.cost;
+  log('Bought a Health Potion.', 'heal');
+  updateStats(); updateShopUI(); saveGame();
+}
+
+function buyEquipment(itemKey) {
+  const item = itemFromKey(itemKey);
+  const cost = SHOP_ITEMS[itemKey].cost;
+  if (player.gold < cost) {
+    log('Not enough gold for ' + item.name + '.', 'system'); return;
+  }
+  if (player.equipment[item.slot] === itemKey || bagHasGear(itemKey)) {
+    log('You already have ' + item.name + '.', 'system'); return;
+  }
+  if (player.equipment[item.slot] && bagIsFull()) {
+    log('No room for ' + item.name + '. Bag is full.', 'system'); return;
+  }
+  player.gold -= cost;
+  receiveEquipment(itemKey, false);
+  updateStats(); updateShopUI(); saveGame();
+}
+
+function openShop() {
+  closeBag();
+  updateShopUI();
+  document.getElementById('shop-overlay').classList.add('active');
+}
+
+function closeShop() { document.getElementById('shop-overlay').classList.remove('active'); }
+
+function updateShopUI() {
+  document.getElementById('shop-gold').textContent = player.gold;
+  document.getElementById('buy-potion').disabled = player.gold < SHOP_ITEMS.potion.cost;
+  document.getElementById('buy-leather').disabled = player.gold < SHOP_ITEMS.leatherArmor.cost;
+  document.getElementById('buy-sword').disabled = player.gold < SHOP_ITEMS.ironSword.cost;
+  document.getElementById('buy-cap').disabled = player.gold < SHOP_ITEMS.leatherCap.cost;
+  document.getElementById('buy-boots').disabled = player.gold < SHOP_ITEMS.leatherBoots.cost;
+  document.getElementById('buy-charm').disabled = player.gold < SHOP_ITEMS.luckyCharm.cost;
+  renderShopSellSection();
+}
+
+function renderShopSellSection() {
+  const section = document.getElementById('shop-sell-section');
+  let html = '<h3>Sell Inventory</h3>';
+  let hasItems = false;
+  for (let i = 0; i < MAX_BAG_SLOTS; i++) {
+    const slot = player.bag[i];
+    if (!slot) continue;
+    hasItems = true;
+    const price = getSellPrice(slot);
+    if (slot.type === 'potion') {
+      html += '<div class="sell-row"><span class="sell-name">Health Potion x' + slot.count + '</span><button class="mini-btn sell" onclick="sellBagSlot(' + i + ');updateShopUI()">Sell 1 (' + price + 'g)</button></div>';
+    } else {
+      const item = ITEMS[slot.key];
+      html += '<div class="sell-row"><span class="sell-name">' + item.name + ' (' + item.statText + ')</span><button class="mini-btn sell" onclick="sellBagSlot(' + i + ');updateShopUI()">Sell (' + price + 'g)</button></div>';
+    }
+  }
+  if (!hasItems) html += '<div style="color:#666;padding:6px 0;font-style:italic;font-size:0.85rem;">No items to sell.</div>';
+  section.innerHTML = html;
+}
+
+/* ── UI Updates ────────────────────────────────────── */
+function updateStats() {
+  renderGearSummary();
+  document.getElementById('st-level').textContent = player.level;
+  document.getElementById('st-atk').textContent = player.atk;
+  const atkBonus = getTotalAtk() - player.atk;
+  const atkBonusEl = document.getElementById('st-atk-bonus');
+  if (atkBonus > 0) { atkBonusEl.textContent = ' (+' + atkBonus + ')'; atkBonusEl.style.display = ''; }
+  else atkBonusEl.style.display = 'none';
+
+  document.getElementById('st-agi').textContent = player.agi;
+  const agiBonus = getTotalAgi() - player.agi;
+  const agiBonusEl = document.getElementById('st-agi-bonus');
+  if (agiBonus > 0) { agiBonusEl.textContent = ' (+' + agiBonus + ')'; agiBonusEl.style.display = ''; }
+  else agiBonusEl.style.display = 'none';
+
+  document.getElementById('st-def').textContent = player.def;
+  const defBonus = getTotalDef() - player.def;
+  const defBonusEl = document.getElementById('st-def-bonus');
+  if (defBonus > 0) { defBonusEl.textContent = ' (+' + defBonus + ')'; defBonusEl.style.display = ''; }
+  else defBonusEl.style.display = 'none';
+
+  document.getElementById('st-int').textContent = player.int;
+  document.getElementById('st-vit').textContent = player.vit;
+  document.getElementById('st-mp').textContent = player.mp;
+  document.getElementById('st-gold').textContent = player.gold;
+
+  const totalPotions = getTotalPotions();
+  document.getElementById('st-potions').textContent = totalPotions;
+  document.getElementById('st-exp').textContent = player.exp;
+  const neededExp = expNeeded(player.level);
+  document.getElementById('st-expneed').textContent = neededExp;
+  document.getElementById('exp-bar-inner').style.width = Math.max(0, Math.min(100, (player.exp / neededExp) * 100)) + '%';
+
+  const hpPct = player.maxHp > 0 ? Math.max(0, (player.hp / player.maxHp) * 100) : 0;
+  document.getElementById('hp-bar-inner').style.width = hpPct + '%';
+  document.getElementById('hp-text').textContent = player.hp + ' / ' + player.maxHp + ' HP';
+
+  const btnPower = document.getElementById('btn-power');
+  const btnPotion = document.getElementById('btn-potion');
+  btnPotion.textContent = 'Use Potion (x' + totalPotions + ')';
+  btnPotion.style.display = totalPotions > 0 ? '' : 'none';
+
+  if (player.level >= POWER_STRIKE_LEVEL) {
+    btnPower.style.display = '';
+    btnPower.textContent = player.powerStrikeCooldown > 0 ? 'Power Strike (' + player.powerStrikeCooldown + ' turns)' : 'Skill: Power Strike';
+  } else {
+    btnPower.style.display = 'none';
+  }
+  updateShopUI();
+}
+
+function updateTowerUI() {
+  document.getElementById('floor-title').textContent = tower.phase === 'select' ? 'Tower of Trials - Floor Selection' : (tower.moreComing ? 'Tower of Trials - Floor ' + MAX_FLOOR + ' Cleared' : 'Tower of Trials - Floor ' + tower.floor);
+  const floorSubtitle = document.getElementById('floor-subtitle');
+  const preview = document.getElementById('floor-preview');
+  const status = document.getElementById('floor-status');
+
+  if (tower.phase === 'select') {
+    floorSubtitle.textContent = 'Choose an unlocked floor.';
+    preview.textContent = 'Unlocked floors: ' + tower.unlockedFloors.join(', ') + '.';
+    status.textContent = 'Select a floor to begin a tower run.';
+    return;
+  }
+  if (tower.moreComing) {
+    floorSubtitle.textContent = 'More floors coming soon.';
+    preview.textContent = 'Floor ' + MAX_FLOOR + ' cleared: More floors coming soon.';
+    status.textContent = 'Rest is available. New floors are not implemented yet.';
+    return;
+  }
+  preview.textContent = 'Floor ' + tower.floor + ': ' + formatMonsterList(tower.floorPlan);
+  if (tower.phase === 'ready') {
+    floorSubtitle.textContent = 'Preview the floor, then ascend.';
+    status.textContent = 'Ready to ascend.';
+  } else if (tower.phase === 'combat') {
+    floorSubtitle.textContent = 'Battle ' + (tower.currentIndex + 1) + ' of ' + tower.floorPlan.length;
+    status.innerHTML = monster.name ? '<span class="monster-health">Rank ' + monster.rank + ': <span class="bar">' + monsterHealthText() + '</span></span>' : 'Combat in progress.';
+  } else if (tower.phase === 'cleared') {
+    floorSubtitle.textContent = 'Floor cleared.';
+    status.textContent = 'Choose Rest or Push Deeper.';
+  } else {
+    floorSubtitle.textContent = 'More floors coming soon.';
+    status.textContent = 'More floors coming soon.';
+  }
+}
+
+function log(msg, cls) {
+  const logEl = document.getElementById('combat-log');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry' + (cls ? ' log-' + cls : '');
+  entry.textContent = msg;
+  logEl.appendChild(entry);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function disableButtons(resolving) {
+  const inCombat = tower.phase === 'combat' && player.hp > 0;
+  const retreatEligible = !inCombat && (tower.phase === 'cleared' || tower.phase === 'ready' || tower.phase === 'complete');
+  document.getElementById('btn-attack').disabled = resolving || !inCombat;
+  document.getElementById('btn-slash').disabled = resolving || !inCombat;
+  document.getElementById('btn-guard').disabled = resolving || !inCombat;
+  document.getElementById('btn-potion').disabled = resolving || !inCombat || getTotalPotions() <= 0 || player.hp >= player.maxHp;
+  document.getElementById('btn-power').disabled = resolving || !inCombat || player.powerStrikeCooldown > 0 || player.level < POWER_STRIKE_LEVEL;
+  document.getElementById('btn-ascend').disabled = resolving || tower.phase !== 'ready' || tower.moreComing;
+  document.getElementById('btn-rest').disabled = resolving || (tower.phase !== 'cleared' && tower.phase !== 'complete') || player.hp >= player.maxHp;
+  document.getElementById('btn-push').disabled = resolving || tower.phase !== 'cleared' || tower.floor >= MAX_FLOOR;
+  document.getElementById('btn-retreat').disabled = resolving || !retreatEligible;
+  document.getElementById('btn-retreat').style.display = retreatEligible ? '' : 'none';
+  document.getElementById('btn-shop').disabled = resolving || inCombat;
+  const btnBag = document.getElementById('btn-bag');
+  btnBag.disabled = resolving || inCombat;
+  btnBag.style.display = inCombat ? 'none' : '';
+}
+
+/* ── Combat ────────────────────────────────────────── */
+function playerDamageToMonster(multiplier) {
+  return Math.max(1, Math.round(getTotalAtk() * multiplier - monster.def / 2));
+}
+function monsterDamageToPlayer() {
+  let dmg = Math.max(1, Math.round(monster.atk - getTotalDef() / 2));
+  if (player.guardActive) dmg = Math.max(1, Math.round(dmg * 0.7));
+  return dmg;
+}
+
+function applyPlayerDamage(dmg, skillName, isCrit) {
+  monster.hp -= dmg;
+  let msg = skillName ? 'You use ' + skillName + ' and deal ' + dmg + ' damage!' : 'You attack and deal ' + dmg + ' damage!';
+  if (isCrit) { log('CRITICAL! ' + msg, 'crit'); playSound('crit'); }
+  else { log(msg, 'dealt'); playSound('attack'); }
+  if (monster.hp <= 0) { handleMonsterDeath(); return true; }
+  updateTowerUI();
+  return false;
+}
+
+function monsterTurn() {
+  if (monster.hp <= 0) return true;
+  const dmg = monsterDamageToPlayer();
+  const prevHp = player.hp;
+  player.hp -= dmg;
+  if (prevHp > 1 && player.hp <= 0) player.hp = 1;
+  let msg = monster.name + ' attacks and deals ' + dmg + ' damage!';
+  if (player.guardActive) msg += ' (Guarded)';
+  log(msg, 'damage'); playSound('hit');
+  player.guardActive = false;
+  updateStats(); updateTowerUI();
+  if (player.hp <= 0) { handlePlayerDeath(); return false; }
+  return true;
+}
+
+function endPlayerTurn(usedPowerStrike) {
+  if (!usedPowerStrike && player.powerStrikeCooldown > 0) player.powerStrikeCooldown--;
+  updateStats(); updateTowerUI(); disableButtons(false); saveGame();
+}
+
+function doAttack() {
+  if (tower.phase !== 'combat') return;
+  disableButtons(true);
+  const killed = applyPlayerDamage(playerDamageToMonster(1), null, false);
+  if (killed) endPlayerTurn(false);
+  else setTimeout(() => { const survived = monsterTurn(); if (survived) endPlayerTurn(false); }, 300);
+}
+
+function doSlash() {
+  if (tower.phase !== 'combat') return;
+  disableButtons(true);
+  const crit = Math.random() < getCritChance();
+  const killed = applyPlayerDamage(playerDamageToMonster(crit ? 1.5 : 1), 'Slash', crit);
+  if (killed) endPlayerTurn(false);
+  else setTimeout(() => { const survived = monsterTurn(); if (survived) endPlayerTurn(false); }, 300);
+}
+
+function doGuard() {
+  if (tower.phase !== 'combat') return;
+  disableButtons(true);
+  player.guardActive = true;
+  log('You raise your guard! Incoming damage reduced by 30% next turn.', 'skill');
+  setTimeout(() => { const survived = monsterTurn(); if (survived) endPlayerTurn(false); }, 300);
+}
+
+function doPotion() {
+  if (tower.phase !== 'combat') return;
+  if (getTotalPotions() <= 0 || player.hp >= player.maxHp) return;
+  disableButtons(true);
+  removeFirstPotion();
+  const beforeHeal = player.hp;
+  player.hp = Math.min(player.maxHp, player.hp + POTION_HEAL);
+  log('You drink a Health Potion and restore ' + (player.hp - beforeHeal) + ' HP.', 'heal');
+  updateStats();
+  setTimeout(() => { const survived = monsterTurn(); if (survived) endPlayerTurn(false); }, 300);
+}
+
+function doPowerStrike() {
+  if (tower.phase !== 'combat') return;
+  if (player.level < POWER_STRIKE_LEVEL || player.powerStrikeCooldown > 0) return;
+  disableButtons(true);
+  player.powerStrikeCooldown = POWER_STRIKE_COOLDOWN;
+  const killed = applyPlayerDamage(playerDamageToMonster(1.5), 'Power Strike', false);
+  if (killed) endPlayerTurn(true);
+  else setTimeout(() => { const survived = monsterTurn(); if (survived) endPlayerTurn(true); }, 300);
+}
+
+function doRestart() {
+  initPlayer();
+  player.hp = player.maxHp;
+  tower = {
+    floor: 1, phase: 'select', currentIndex: 0,
+    floorPlan: getFloorPlan(1), moreComing: false,
+    highestFloorReached: 1, unlockedFloors: [1]
+  };
+  monster = emptyMonster();
+  document.getElementById('combat-log').innerHTML = '';
+  document.getElementById('defeat-overlay').classList.remove('active');
+  closeShop(); closeBag();
+  log('Welcome, Swordsman. The Tower of Trials waits.', 'system');
+  updateStats(); updateTowerUI(); disableButtons(false); saveGame(); showFloorSelection();
+}
+
+/* ── Web Audio Sound Engine ────────────────────────── */
+const _ac = new (window.AudioContext || window.webkitAudioContext)();
+function _beep(freq, type, vol, dur, decay) {
+  try {
+    const o = _ac.createOscillator();
+    const g = _ac.createGain();
+    o.connect(g); g.connect(_ac.destination);
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, _ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, _ac.currentTime + decay);
+    o.start(); o.stop(_ac.currentTime + dur);
+  } catch(e) {}
+}
+function playSound(id) {
+  if (_ac.state === 'suspended') _ac.resume();
+  if (id === 'attack') _beep(220, 'square', 0.15, 0.12, 0.10);
+  else if (id === 'hit') _beep(120, 'sawtooth', 0.18, 0.18, 0.16);
+  else if (id === 'crit') { _beep(330, 'square', 0.20, 0.18, 0.15); setTimeout(() => _beep(440, 'square', 0.15, 0.12, 0.10), 80); }
+  else if (id === 'levelup') { _beep(523, 'sine', 0.20, 0.15, 0.12); setTimeout(() => _beep(659, 'sine', 0.20, 0.15, 0.12), 130); setTimeout(() => _beep(784, 'sine', 0.22, 0.25, 0.22), 260); }
+  else if (id === 'die') { _beep(180, 'sawtooth', 0.22, 0.35, 0.32); setTimeout(() => _beep(100, 'sawtooth', 0.18, 0.4, 0.38), 200); }
+}
+
+/* ── Event Listeners ───────────────────────────────── */
+document.getElementById('btn-attack').addEventListener('click', doAttack);
+document.getElementById('btn-slash').addEventListener('click', doSlash);
+document.getElementById('btn-guard').addEventListener('click', doGuard);
+document.getElementById('btn-potion').addEventListener('click', doPotion);
+document.getElementById('btn-power').addEventListener('click', doPowerStrike);
+document.getElementById('btn-ascend').addEventListener('click', startFloor);
+document.getElementById('btn-rest').addEventListener('click', restAfterFloor);
+document.getElementById('btn-push').addEventListener('click', pushDeeper);
+document.getElementById('btn-retreat').addEventListener('click', retreatToSelection);
+document.getElementById('btn-shop').addEventListener('click', openShop);
+document.getElementById('btn-bag').addEventListener('click', openBag);
+document.getElementById('buy-potion').addEventListener('click', buyPotion);
+document.getElementById('buy-leather').addEventListener('click', () => buyEquipment('leatherArmor'));
+document.getElementById('buy-sword').addEventListener('click', () => buyEquipment('ironSword'));
+document.getElementById('buy-cap').addEventListener('click', () => buyEquipment('leatherCap'));
+document.getElementById('buy-boots').addEventListener('click', () => buyEquipment('leatherBoots'));
+document.getElementById('buy-charm').addEventListener('click', () => buyEquipment('luckyCharm'));
+document.getElementById('close-shop').addEventListener('click', closeShop);
+document.getElementById('close-bag').addEventListener('click', closeBag);
+document.getElementById('btn-sell-all').addEventListener('click', sellAllBag);
+document.getElementById('loot-equip').addEventListener('click', acceptLootPrompt);
+document.getElementById('loot-keep').addEventListener('click', declineLootPrompt);
+document.getElementById('floor-buttons').addEventListener('click', event => {
+  const button = event.target.closest('.floor-choice');
+  if (!button || button.disabled || !button.dataset.floor) return;
+  selectFloor(Number(button.dataset.floor));
+});
+document.getElementById('restart-btn').addEventListener('click', doRestart);
+document.getElementById('camp-btn').addEventListener('click', resolvePlayerDeath);
+
+/* ── Init ──────────────────────────────────────────── */
+if (loadGame()) {
+  log('Save loaded. The Tower of Trials continues.', 'system');
+} else {
+  initPlayer();
+  player.hp = player.maxHp;
+  tower.phase = 'select';
+  log('Welcome, Swordsman. The Tower of Trials waits.', 'system');
+  saveGame();
+}
+updateStats();
+updateTowerUI();
+if (player.hp <= 0) {
+  handlePlayerDeath();
+} else {
+  disableButtons(false);
+  showFloorSelection();
+}
+</script>
+</body>
+</html>

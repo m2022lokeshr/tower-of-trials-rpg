@@ -1,0 +1,434 @@
+SCHEMA — Tower of Trials RPG Combat Prototype
+============================================
+
+FILE: rpg_combat.html
+TYPE: Single-file browser game (HTML + CSS + JS)
+
+
+--- OVERVIEW ---
+
+Turn-based text RPG. Player (Swordsman) climbs the Tower of Trials.
+Page load opens Floor Selection after save data loads.
+Player selects an unlocked floor, clicks "Ascend", then fights that floor's monsters in sequence.
+After clearing a non-boss floor, player can Rest, Push Deeper, or Retreat.
+Floors 1-10 are implemented. Floor 10 is a boss-only floor.
+After floor 10, show "More floors coming soon".
+Game state auto-saves to localStorage.
+
+
+--- PLAYER CLASS ---
+
+Class: Swordsman (★1)
+Base stats (Lv 1): ATK 12 | AGI 10 | DEF 8 | INT 4 | VIT 50 | MP 20
+Growth per level: ATK +3 | AGI +2 | DEF +2 | INT +0 | VIT +3
+
+HP = VIT (maxHp recalculated from VIT; HP capped at maxHp)
+
+
+--- MONSTERS ---
+
+Goblin (Rank H)
+  HP 30 | ATK 8 | DEF 3 | EXP 5 | Gold 3
+
+Slime (Rank H)
+  HP 40 | ATK 5 | DEF 6 | EXP 5 | Gold 2
+  Splits on death → Mini-Slime
+
+Mini-Slime (Rank H)
+  HP 20 | ATK 5 | DEF 6 | EXP 0 | Gold 0
+  No drops, no split
+
+Wolf (Rank G)
+  HP 60 | ATK 14 | DEF 4 | EXP 20 | Gold 12
+
+Orc (Rank G)
+  HP 80 | ATK 12 | DEF 7 | EXP 20 | Gold 15
+
+Ogre (Rank F)
+  HP 150 | ATK 18 | DEF 10 | EXP 80 | Gold 50
+  Floor 5 boss
+
+Giant Spider (Rank F)
+  HP 120 | ATK 22 | DEF 8 | EXP 45 | Gold 30
+
+Skeleton Knight (Rank E)
+  HP 180 | ATK 28 | DEF 14 | EXP 60 | Gold 40
+
+Minotaur (Rank E)
+  HP 280 | ATK 35 | DEF 18 | EXP 150 | Gold 100
+  Floor 10 boss
+
+
+--- FLOOR COMPOSITION ---
+
+Floor 1:  Goblin, Slime
+Floor 2:  Slime, Goblin, Goblin
+Floor 3:  Wolf, Wolf, Orc
+Floor 4:  Orc, Wolf, Orc, Wolf
+Floor 5:  Ogre (boss)
+Floor 6:  Giant Spider, Giant Spider, Orc
+Floor 7:  Giant Spider, Skeleton Knight, Giant Spider
+Floor 8:  Skeleton Knight, Skeleton Knight, Ogre
+Floor 9:  Skeleton Knight, Giant Spider, Skeleton Knight, Ogre
+Floor 10: Minotaur (boss)
+
+
+--- FLOOR SELECTION ---
+
+Tracked:
+  Highest floor reached
+  Unlocked floor list
+
+Unlocked:
+  A floor is unlocked after the player reaches it.
+  Save/load persists unlocked floors.
+
+Selection labels:
+  Floor 1-2:  H-rank, easy — recommended level 2+
+  Floor 3-4:  G-rank, medium — recommended level 5+
+  Floor 5:    F-rank Boss Ogre — recommended level 7+
+  Floor 6:    F-rank, hard — recommended level 7+
+  Floor 7:    F/E-rank, hard — recommended level 8+
+  Floor 8:    E-rank, very hard — recommended level 8+
+  Floor 9:    E-rank gauntlet — recommended level 9+
+  Floor 10:   E-rank Boss Minotaur — recommended level 10+
+  Floor 11+:  Coming soon
+
+
+--- TOWER FLOW ---
+
+Select:
+  Floor Selection overlay is visible.
+  Player chooses an unlocked floor.
+
+Ready:
+  Player can shop, manage equipment, retreat, or click "Ascend".
+
+Combat:
+  Player fights each monster in floor order.
+  Current monster and floor queue persist in save data.
+  Slime split must be cleared before the next queued monster appears.
+
+Cleared:
+  Player can Rest, Push Deeper, or Retreat.
+
+Complete:
+  After floor 10, show "More floors coming soon".
+  Rest and Retreat remain available outside combat.
+
+Retreat:
+  Available outside active combat.
+  Heals player to full HP.
+  Resets current floor progress.
+  Saves level, EXP, gold, bag contents, gear, and unlocks.
+  Returns to Floor Selection.
+
+
+--- EXP SYSTEM ---
+
+Formula: EXP needed = 10 × (Level ^ 2.2)
+Round to nearest integer.
+
+On level up: stats increase, HP/MP fully restored, overflow EXP carries over.
+
+
+--- COMBAT TURN ORDER ---
+
+1. Player picks action → resolves immediately
+2. If monster alive → monster attacks
+3. If monster dies → award EXP/gold, try drops, level up, handle gimmick, advance queue
+4. Cooldowns tick down at end of player turn (only on non-Power-Strike turns)
+
+Buttons disabled during resolution to prevent double-clicks.
+
+
+--- DAMAGE FORMULAS ---
+
+Player damage = (Total ATK × multiplier) − (Monster DEF / 2)
+Minimum damage = 1
+
+Total ATK = base ATK + all equipment ATK bonuses
+
+Multipliers:
+- Attack:       ×1.0
+- Slash:        ×1.0 (crit chance → ×1.5)
+- Power Strike: ×1.5 (unlock Lv 10, cooldown 3 turns)
+
+Monster damage = Monster ATK − (Total Player DEF / 2)
+Minimum damage = 1
+
+Total Player DEF = base DEF + all equipment DEF bonuses
+
+Guard: reduces incoming damage by 30% (×0.7), min 1.
+
+Crit chance = 10% base + equipment crit bonuses.
+
+
+--- GOLD / SHOP ---
+
+Monsters award gold on death. Mini-Slime awards no gold.
+Shop can be opened outside combat.
+
+Shop items (buy):
+  Health Potion:   15 gold
+  Leather Cap:     30 gold
+  Leather Boots:   30 gold
+  Lucky Charm:     50 gold
+  Leather Armor:   50 gold
+  Iron Sword:      80 gold
+
+Shop sell section:
+  Lists bag contents with individual sell buttons.
+  Sell prices are fixed per item (see SELL PRICES below).
+
+
+--- SELL PRICES ---
+
+Health Potion:     3 gold
+Iron Sword:       16 gold
+Leather Armor:    10 gold
+Leather Cap:       6 gold
+Iron Helm:        14 gold
+Leather Boots:     6 gold
+Iron Greaves:     14 gold
+Lucky Charm:      10 gold
+Warrior's Ring:   12 gold
+Chainmail:        14 gold
+Steel Sword:      20 gold
+Guardian Amulet:  16 gold
+
+
+--- HEALTH MANAGEMENT ---
+
+Player starts with 1 Health Potion in bag.
+
+Health Potion:
+  Restores 30 HP, up to max HP
+  Usable in combat from the action bar
+  Consumes the player's turn, then monster attacks
+  Hidden when potion count is 0
+  Disabled at full HP
+
+Potion drops:
+  10% chance on defeated non-boss, non-mini monsters
+  Mini-Slime does not drop potions
+
+Rest:
+  Available after a floor is cleared
+  Restores HP to full
+  No EXP or gold cost
+
+
+--- BAG SYSTEM ---
+
+Max slots: 5
+Max potion stack: 10 per slot
+
+Bag holds any mix of:
+  - Health Potions (stackable up to 10)
+  - Gear items (1 per slot, non-stackable)
+
+Bag UI:
+  Shows 5 slots with contents
+  Potions: show count, sell button, drop button
+  Gear: show name, stat text, equip button, sell button, drop button
+  Equipped section below shows current gear per slot with unequip button
+  "Sell All" button sells entire bag for gold
+
+Bag functions:
+  addPotionToBag()  — stacks if possible, else fills empty slot
+  addGearToBag()    — fills first empty slot
+  removeFirstPotion() — removes one potion from first stack found
+  bagIsFull()       — true if no empty slots
+
+
+--- EQUIPMENT ---
+
+Slots:
+  Weapon
+  Armor
+  Helmet
+  Boots
+  Accessory
+
+Items:
+  Weapon:
+    Iron Sword:     +5 ATK
+    Steel Sword:    +8 ATK
+
+  Armor:
+    Leather Armor:  +3 DEF
+    Chainmail:      +6 DEF
+
+  Helmet:
+    Leather Cap:    +2 DEF
+    Iron Helm:      +4 DEF
+
+  Boots:
+    Leather Boots:  +2 AGI
+    Iron Greaves:   +3 AGI, +1 DEF
+
+  Accessory:
+    Lucky Charm:    +5% crit chance
+    Warrior's Ring: +2 ATK, +1 DEF
+    Guardian Amulet:+3 DEF, +3% crit
+
+Drops:
+  Floors 1-4:
+    Leather Armor:   5% chance
+    Leather Cap:     8% chance
+    Leather Boots:   8% chance
+    Lucky Charm:     5% chance (floors 3-4 only)
+
+  Floors 6-9:
+    Iron Sword:      5% chance
+    Chainmail:       5% chance
+    Iron Helm:       8% chance
+    Iron Greaves:    8% chance
+    Warrior's Ring:  5% chance
+
+  Boss guaranteed drops:
+    Ogre (floor 5):     Chainmail, Iron Helm, Iron Greaves, Warrior's Ring
+    Minotaur (floor 10): Steel Sword, Guardian Amulet
+
+Drop handling:
+  Auto-equip if matching slot is empty
+  If slot occupied, show Yes/No equipment prompt
+  Yes → equips new item, old item moved to bag (or lost if bag full)
+  No → item added to bag (or left behind if bag full)
+
+
+--- COOLDOWN SYSTEM ---
+
+Power Strike: 3 turn cooldown.
+After use, cannot use for next 3 player turns.
+Cooldown decrements at end of each NON-Power-Strike player turn.
+Button shows remaining turns when disabled.
+
+
+--- DEATH / RESTART ---
+
+Player HP floor: cannot die in 1 hit unless already at 1 HP.
+  (If HP > 1 and damage would bring it to 0 or below, set HP to 1.)
+
+On death:
+  Lose 10% current gold, rounded down
+  Restore full HP
+  Show "You Died" overlay with animation
+  Display gold lost
+  Two buttons: "Return to Camp" (keeps progress, returns to floor select)
+               "New Game" (full reset)
+  Retain level, EXP, equipment, bag, and unlocks
+
+Restart (New Game):
+  Resets everything to Lv 1, floor 1, starter potion, no gear, no gold, clears log.
+  Overwrites saved game with fresh state.
+
+
+--- SAVE / LOAD ---
+
+Storage: localStorage
+Key: swordsmanRpgSave
+Version: 4
+
+Auto-save triggers:
+  New game initialization
+  End of player turn
+  Ascend, Rest, Push Deeper, Retreat
+  Shop purchases
+  Equip / Unequip / Drop / Sell
+  Death penalty
+  Restart
+
+Saved player state:
+  Level, EXP, base stats, HP/max HP, MP, gold
+  Power Strike cooldown, guard active flag
+  Equipment (5 slot keys)
+  Bag (5 slots with type + count/key)
+
+Saved combat state:
+  Current monster template key, name, rank, HP/max HP, ATK, DEF
+  EXP reward, gold reward, flags (splits, isMini, isBoss)
+
+Saved tower state:
+  Current floor
+  Phase: select / ready / combat / cleared / complete
+  Current floor plan (monster key array)
+  Current monster index
+  Highest floor reached
+  Unlocked floors array
+  More-floors-coming flag
+
+Load behavior:
+  On page open, load save first
+  Then show Floor Selection overlay
+  Older v3 saves are migrated to v4 bag format
+  v2 saves are rejected
+
+
+--- WEB AUDIO SOUND ENGINE ---
+
+Uses Web Audio API (AudioContext) with oscillator-based sounds.
+No external audio files.
+
+Sound IDs:
+  attack  → 220 Hz square wave, short beep
+  hit     → 120 Hz sawtooth, thud
+  crit    → 330 Hz + 440 Hz square wave, two-tone
+  levelup → 523 Hz + 659 Hz + 784 Hz sine wave, ascending chime
+  die     → 180 Hz + 100 Hz sawtooth, descending tone
+
+AudioContext resumes on first sound play if suspended.
+
+
+--- UI LAYOUT ---
+
+Top center: tower floor indicator and status subtitle
+Left panel (280px): player HP bar, equipped gear summary, stats, EXP progress bar, gold, potion count
+Right panel: floor preview, monster HP text bar during combat, current floor status, scrolling combat log
+Bottom bar: combat buttons, Ascend, Rest, Push Deeper, Retreat, Shop, Bag
+
+Combat feedback:
+  HP bar: red fill, shows current/max HP text
+  EXP bar: yellow fill under EXP / Next Lv
+  Monster health: text bar, e.g. "Goblin [████░░░░] 12/30 HP"
+  Power Strike cooldown: button shows remaining turns
+  Gear summary: shows each equipped slot and stat bonus
+
+Floor Selection:
+  Central overlay with large floor buttons
+  Locked floors are disabled
+  Floor 11+ shows "Coming soon"
+
+Shop:
+  Modal overlay
+  Shows item list, costs, buy buttons, current gold
+  Sell section lists bag contents with sell buttons
+
+Bag:
+  Modal overlay
+  5 slots, equipped section, sell-all button
+
+Loot Prompt:
+  Modal overlay with Yes/No buttons for occupied-slot equipment drops
+
+Death Overlay:
+  Full-screen dark overlay
+  Animated "You Died" text
+  Gold lost display
+  Return to Camp / New Game buttons
+
+
+--- COLOR CODING (combat log CSS classes) ---
+
+log-damage    → red (#e74c3c)      — damage taken by player
+log-dealt     → yellow (#f1c40f)   — damage dealt by player
+log-heal      → green (#2ecc71)    — healing, potions
+log-levelup   → cyan (#00e5ff)     — level up, skill unlock
+log-skill     → blue (#3498db)     — skill use (Guard)
+log-enemy     → salmon (#f87264)   — enemy appearance / action
+log-system    → gray (#bdc3c7)     — system messages
+log-crit      → bold yellow (#ffb300) — critical hits
+log-loot      → gold (#ffd700)     — equipment drops
+log-split     → purple (#9b59b6)   — slime split events
+log-gold      → gold (#ffd700)     — gold gains/shop
