@@ -316,7 +316,7 @@ On death:
   Restore full HP
   Show "You Died" overlay with animation
   Display gold lost
-  Two buttons: "Return to Camp" (keeps progress, returns to floor select)
+  Two buttons: "Return to Camp" (keeps progress, returns to Camp)
                "New Game" (full reset)
   Retain level, EXP, equipment, bag, and unlocks
 
@@ -361,7 +361,7 @@ Saved tower state:
 
 Load behavior:
   On page open, load save first
-  Then show Floor Selection overlay
+  Then show the Camp dashboard
   Older v3 saves are migrated to v4 bag format
   v2 saves are rejected
 
@@ -399,6 +399,16 @@ Floor Selection:
   Central overlay with large floor buttons
   Locked floors are disabled
   Floor 11+ shows "Coming soon"
+  Opened from the Camp "Enter Tower" button
+
+Camp Dashboard:
+  Full-screen peaceful hub with dark textured background and glowing title
+  Shows level, current/max HP, total ATK, total DEF, gold, potions,
+  highest floor reached, and all 5 equipment slots
+  Actions: Enter Tower, Shop, Bag, Rest at Campfire
+  Campfire rest restores HP and MP to full with no cost
+  Shown after load, retreat, death return, new game, and clearing floor 10
+  Shop and Bag open as existing overlays above the Camp
 
 Shop:
   Modal overlay

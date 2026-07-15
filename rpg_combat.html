@@ -31,7 +31,7 @@
     min-width: 280px;
     border-right: 1px solid #333;
     padding: 12px;
-    overflow: hidden;
+    overflow-y: auto;
     flex-shrink: 0;
   }
   #stats-panel h2 {
@@ -133,13 +133,60 @@
   .action-btn.shop:hover:not(:disabled) { background: #705816; }
   .action-btn.bag { background: #2e6b4f; border-color: #256b4a; }
   .action-btn.bag:hover:not(:disabled) { background: #256b4a; }
-  #defeat-overlay, #shop-overlay, #floor-select-overlay, #loot-overlay, #bag-overlay {
+  #defeat-overlay, #shop-overlay, #floor-select-overlay, #loot-overlay, #bag-overlay, #camp-overlay {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(0,0,0,0.85); display: none;
     align-items: center; justify-content: center; z-index: 100;
   }
   #defeat-overlay.active, #shop-overlay.active, #floor-select-overlay.active,
-  #loot-overlay.active, #bag-overlay.active { display: flex; }
+  #loot-overlay.active, #bag-overlay.active, #camp-overlay.active { display: flex; }
+  #camp-overlay {
+    background:
+      radial-gradient(ellipse at 50% 15%, #2a2436 0%, rgba(30, 25, 39, 0.72) 30%, rgba(8, 8, 11, 0.98) 78%),
+      repeating-linear-gradient(135deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 7px);
+    z-index: 90; padding: 12px; overflow: hidden;
+  }
+  #camp-dashboard {
+    width: min(720px, 100%); max-height: 100%;
+    border: 1px solid #66527d; outline: 1px solid #25202e; outline-offset: 5px;
+    background: rgba(18, 17, 23, 0.94);
+    padding: clamp(12px, 2vh, 24px); text-align: center; overflow: hidden;
+  }
+  #camp-title {
+    color: #f1c40f; font-size: clamp(1.7rem, 5vw, 3.2rem); letter-spacing: 0.04em;
+    font-weight: bold; margin-bottom: 4px;
+  }
+  #camp-tagline { color: #aaa; font-size: 0.8rem; margin-bottom: 10px; }
+  #camp-snapshot {
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px;
+    margin-bottom: 8px;
+  }
+  .camp-stat {
+    border: 1px solid #37303f; background: #121116; padding: 6px 4px;
+    color: #bdc3c7; font-size: 0.7rem;
+  }
+  .camp-stat strong { display: block; color: #fff; font-size: 0.85rem; margin-top: 2px; }
+  #camp-equipment {
+    border: 1px solid #37303f; background: #121116; padding: 7px; text-align: left;
+    margin-bottom: 8px; font-size: 0.76rem;
+  }
+  #camp-equipment h2 { color: #f1c40f; font-size: 0.86rem; margin-bottom: 4px; }
+  .camp-gear-line { color: #bdc3c7; padding: 1px 0; }
+  .camp-gear-empty { color: #666; font-style: italic; }
+  #camp-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .camp-action {
+    border: 1px solid #51405f; background: #2b2233; color: #fff; padding: 10px 8px;
+    font-family: inherit; font-size: 0.9rem; cursor: pointer; border-radius: 3px;
+  }
+  .camp-action:hover { background: #3a2b47; }
+  .camp-action.primary { background: #8e44ad; border-color: #a85dc8; }
+  .camp-action.primary:hover { background: #9b59b6; }
+  #camp-message { min-height: 1.2em; color: #2ecc71; font-size: 0.78rem; margin-top: 8px; }
+  @media (max-width: 460px) {
+    #camp-snapshot { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    #camp-actions { grid-template-columns: 1fr; }
+    #camp-dashboard { padding: 12px; }
+  }
   #defeat-overlay { flex-direction: column; text-align: center; }
   @keyframes deathDrop {
     from { opacity: 0; transform: translateY(-40px) scale(0.85); }
@@ -219,6 +266,11 @@
       <div id="hp-bar-outer"><div id="hp-bar-inner"></div></div>
       <div id="hp-text"></div>
     </div>
+    <div class="stat-row"><span class="stat-label">EXP</span><span class="stat-value" id="st-exp">0</span></div>
+    <div class="stat-row"><span class="stat-label">Next Lv</span><span class="stat-value" id="st-expneed">10</span></div>
+    <div id="exp-bar-container">
+      <div id="exp-bar-outer"><div id="exp-bar-inner"></div></div>
+    </div>
     <div id="gear-summary"></div>
     <div class="stat-row"><span class="stat-label">Level</span><span class="stat-value" id="st-level">1</span></div>
     <div class="stat-row"><span class="stat-label">ATK</span><span><span class="stat-value" id="st-atk">12</span><span class="stat-value bonus" id="st-atk-bonus" style="display:none"></span></span></div>
@@ -229,11 +281,6 @@
     <div class="stat-row"><span class="stat-label">MP</span><span class="stat-value" id="st-mp">20</span></div>
     <div class="stat-row"><span class="stat-label">Gold</span><span class="stat-value" id="st-gold">0</span></div>
     <div class="stat-row"><span class="stat-label">Potions</span><span class="stat-value" id="st-potions">1</span></div>
-    <div class="stat-row"><span class="stat-label">EXP</span><span class="stat-value" id="st-exp">0</span></div>
-    <div class="stat-row"><span class="stat-label">Next Lv</span><span class="stat-value" id="st-expneed">10</span></div>
-    <div id="exp-bar-container">
-      <div id="exp-bar-outer"><div id="exp-bar-inner"></div></div>
-    </div>
   </div>
 
   <div id="log-panel">
@@ -318,6 +365,22 @@
     <h2>Floor Selection</h2>
     <div id="floor-select-note">Choose an unlocked floor to begin a run.</div>
     <div id="floor-buttons"></div>
+  </div>
+</div>
+
+<div id="camp-overlay">
+  <div id="camp-dashboard">
+    <h1 id="camp-title">TOWER OF TRIALS</h1>
+    <div id="camp-tagline">A quiet fire burns before the next climb.</div>
+    <div id="camp-snapshot"></div>
+    <div id="camp-equipment"></div>
+    <div id="camp-actions">
+      <button class="camp-action primary" id="camp-enter-tower">Enter Tower</button>
+      <button class="camp-action" id="camp-shop">Shop</button>
+      <button class="camp-action" id="camp-bag">Bag</button>
+      <button class="camp-action" id="camp-rest">Rest at Campfire</button>
+    </div>
+    <div id="camp-message"></div>
   </div>
 </div>
 
@@ -729,13 +792,60 @@ function setupFloor(floor) {
 }
 
 function showFloorSelection() {
-  renderFloorSelection(); closeShop(); closeLootPrompt(); closeBag();
+  hideCamp(); renderFloorSelection(); closeShop(); closeLootPrompt(); closeBag();
   document.getElementById('floor-select-overlay').classList.add('active');
   disableButtons(false);
 }
 
 function hideFloorSelection() {
   document.getElementById('floor-select-overlay').classList.remove('active');
+}
+
+function renderCamp(message) {
+  const snapshot = document.getElementById('camp-snapshot');
+  snapshot.innerHTML = [
+    ['Level', player.level],
+    ['HP', player.hp + ' / ' + player.maxHp],
+    ['ATK', getTotalAtk()],
+    ['DEF', getTotalDef()],
+    ['Gold', player.gold],
+    ['Potions', getTotalPotions()],
+    ['Highest Floor', tower.highestFloorReached]
+  ].map(([label, value]) => '<div class="camp-stat">' + label + '<strong>' + value + '</strong></div>').join('');
+
+  const equipment = document.getElementById('camp-equipment');
+  equipment.innerHTML = '<h2>Equipment</h2>' + EQUIPMENT_SLOTS.map(slot => {
+    const item = itemFromKey(player.equipment[slot]);
+    const value = item ? item.name + ' (' + item.statText + ')' : 'None equipped';
+    return '<div class="camp-gear-line">' + formatSlotLabel(slot) + ': <span class="' + (item ? 'item-name' : 'camp-gear-empty') + '">' + value + '</span></div>';
+  }).join('');
+  if (message !== undefined) document.getElementById('camp-message').textContent = message;
+}
+
+function showCamp(message) {
+  hideFloorSelection(); closeShop(); closeLootPrompt(); closeBag();
+  renderCamp(message || 'The campfire is warm. Prepare for your next climb.');
+  document.getElementById('camp-overlay').classList.add('active');
+  disableButtons(false);
+}
+
+function hideCamp() {
+  document.getElementById('camp-overlay').classList.remove('active');
+}
+
+function enterTowerFromCamp() {
+  player.guardActive = false;
+  tower.phase = 'select'; tower.currentIndex = 0; tower.moreComing = false;
+  tower.floorPlan = getFloorPlan(Math.min(Math.max(1, tower.floor), MAX_FLOOR));
+  monster = emptyMonster();
+  updateStats(); updateTowerUI(); saveGame(); showFloorSelection();
+}
+
+function restAtCampfire() {
+  player.hp = player.maxHp; player.mp = 20; player.guardActive = false;
+  log('You rest by the fire and feel refreshed.', 'heal');
+  updateStats(); updateTowerUI(); saveGame();
+  renderCamp('You rest by the fire and feel refreshed.');
 }
 
 function renderFloorSelection() {
@@ -810,11 +920,12 @@ function clearFloor() {
   monster = emptyMonster(); player.guardActive = false;
   if (tower.floor >= MAX_FLOOR) {
     tower.moreComing = true;
-    log('More floors coming soon.', 'levelup');
+    log('The tower yields. More floors coming soon.', 'levelup');
   } else {
     log('Floor ' + tower.floor + ' cleared. Rest or push deeper.', 'levelup');
   }
   updateTowerUI(); updateStats(); disableButtons(false); saveGame();
+  if (tower.floor >= MAX_FLOOR) showCamp('Victory! Floor ' + MAX_FLOOR + ' is cleared. More floors are coming soon.');
 }
 
 function restAfterFloor() {
@@ -837,7 +948,7 @@ function retreatToSelection() {
   tower.floorPlan = getFloorPlan(Math.min(tower.floor, MAX_FLOOR));
   monster = emptyMonster();
   log('You retreat from the tower and recover to full HP.', 'heal');
-  updateStats(); updateTowerUI(); saveGame(); showFloorSelection();
+  updateStats(); updateTowerUI(); saveGame(); showCamp('You return to camp, rested and ready.');
 }
 
 /* ── Death ─────────────────────────────────────────── */
@@ -857,7 +968,7 @@ function resolvePlayerDeath() {
   tower.phase = 'select'; tower.currentIndex = 0;
   document.getElementById('defeat-overlay').classList.remove('active');
   log('You are defeated. You wake outside the tower.', 'damage');
-  updateTowerUI(); saveGame(); showFloorSelection();
+  updateTowerUI(); saveGame(); showCamp('You wake by the campfire. The tower will wait.');
 }
 
 /* ── Loot & Rewards ────────────────────────────────── */
@@ -1271,6 +1382,7 @@ function updateStats() {
     btnPower.style.display = 'none';
   }
   updateShopUI();
+  renderCamp();
 }
 
 function updateTowerUI() {
@@ -1435,7 +1547,7 @@ function doRestart() {
   document.getElementById('defeat-overlay').classList.remove('active');
   closeShop(); closeBag();
   log('Welcome, Swordsman. The Tower of Trials waits.', 'system');
-  updateStats(); updateTowerUI(); disableButtons(false); saveGame(); showFloorSelection();
+  updateStats(); updateTowerUI(); disableButtons(false); saveGame(); showCamp('A new journey begins at the campfire.');
 }
 
 /* ── Web Audio Sound Engine ────────────────────────── */
@@ -1490,6 +1602,10 @@ document.getElementById('floor-buttons').addEventListener('click', event => {
 });
 document.getElementById('restart-btn').addEventListener('click', doRestart);
 document.getElementById('camp-btn').addEventListener('click', resolvePlayerDeath);
+document.getElementById('camp-enter-tower').addEventListener('click', enterTowerFromCamp);
+document.getElementById('camp-shop').addEventListener('click', openShop);
+document.getElementById('camp-bag').addEventListener('click', openBag);
+document.getElementById('camp-rest').addEventListener('click', restAtCampfire);
 
 /* ── Init ──────────────────────────────────────────── */
 if (loadGame()) {
@@ -1507,7 +1623,7 @@ if (player.hp <= 0) {
   handlePlayerDeath();
 } else {
   disableButtons(false);
-  showFloorSelection();
+  showCamp('The campfire is warm. Prepare for your next climb.');
 }
 </script>
 </body>
