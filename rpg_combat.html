@@ -1778,19 +1778,18 @@ function monsterTurn() {
     }
     player.guardActive = false;
     anyAttacked = true;
+    if (m.enrage && m.hp / m.maxHp < 0.30 && !m.enraged) {
+      m.enraged = true;
+      log(m.name + ' is enraged! ATK +50%!', 'enemy');
+    }
+    if (m.petrify && !m.petrified && Math.random() < m.petrify) {
+      m.petrified = true;
+      player.hp -= Math.max(1, Math.round(m.atk - getTotalDef() / 2));
+      log(player.name + ' is petrified for 1 turn!', 'damage');
+      playSound('hit');
+      m.petrified = false;
+    }
   });
-  if (m.enrage && m.hp / m.maxHp < 0.30 && !m.enraged) {
-    m.enraged = true;
-    log(m.name + ' is enraged! ATK +50%!', 'enemy');
-  }
-  if (m.petrify && !m.petrified && Math.random() < m.petrify) {
-    m.petrified = true;
-    player.hp -= Math.max(1, Math.round(m.atk - getTotalDef() / 2));
-    log(player.name + ' is petrified for 1 turn!', 'damage');
-    playSound('hit');
-    m.petrified = false;
-    return true;
-  }
   updateStats(); updateTowerUI();
   if (player.hp <= 0) { handlePlayerDeath(); return false; }
   return anyAttacked ? true : true;
