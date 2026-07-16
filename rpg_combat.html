@@ -74,6 +74,9 @@
   .monster-health { color: #f0f0f0; font-weight: bold; }
   .monster-health .bar { color: #e74c3c; letter-spacing: 1px; }
   .item-name { color: #2ecc71; font-weight: bold; }
+  .item-name.common { color: #fff; }
+  .item-name.uncommon { color: #2ecc71; }
+  .item-name.rare { color: #3498db; }
   .item-stat { color: #aaa; font-size: 0.8rem; }
   .slot-label { color: #aaa; }
   .mini-btn {
@@ -133,13 +136,13 @@
   .action-btn.shop:hover:not(:disabled) { background: #705816; }
   .action-btn.bag { background: #2e6b4f; border-color: #256b4a; }
   .action-btn.bag:hover:not(:disabled) { background: #256b4a; }
-  #defeat-overlay, #shop-overlay, #floor-select-overlay, #loot-overlay, #bag-overlay, #camp-overlay {
+  #defeat-overlay, #shop-overlay, #floor-select-overlay, #loot-overlay, #bag-overlay, #camp-overlay, #skill-choice-overlay {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(0,0,0,0.85); display: none;
     align-items: center; justify-content: center; z-index: 100;
   }
   #defeat-overlay.active, #shop-overlay.active, #floor-select-overlay.active,
-  #loot-overlay.active, #bag-overlay.active, #camp-overlay.active { display: flex; }
+  #loot-overlay.active, #bag-overlay.active, #camp-overlay.active, #skill-choice-overlay.active { display: flex; }
   #camp-overlay {
     background:
       radial-gradient(ellipse at 50% 15%, #2a2436 0%, rgba(30, 25, 39, 0.72) 30%, rgba(8, 8, 11, 0.98) 78%),
@@ -207,13 +210,13 @@
     cursor: pointer; border-radius: 3px; margin: 0 6px;
   }
   #camp-btn:hover { background: #34495e; }
-  #shop-modal, #floor-select-modal, #loot-modal, #bag-modal {
+  #shop-modal, #floor-select-modal, #loot-modal, #bag-modal, #skill-choice-modal {
     width: min(540px, calc(100vw - 32px));
     background: #171717; border: 1px solid #444;
     padding: 16px; border-radius: 3px;
   }
   #shop-modal, #floor-select-modal, #bag-modal { max-height: 82vh; overflow-y: auto; }
-  #shop-modal h2, #floor-select-modal h2, #loot-modal h2, #bag-modal h2 {
+  #shop-modal h2, #floor-select-modal h2, #loot-modal h2, #bag-modal h2, #skill-choice-modal h2 {
     color: #f1c40f; font-size: 1.2rem; margin-bottom: 10px;
   }
   .shop-row {
@@ -250,6 +253,22 @@
   .bag-slot .bag-btns { display: flex; gap: 4px; flex-shrink: 0; }
   .bag-equip-section { margin-top: 10px; padding-top: 8px; border-top: 1px solid #444; }
   .bag-equip-section h3 { font-size: 0.95rem; margin-bottom: 6px; color: #f1c40f; }
+  #skill-choice-modal {
+    max-height: 90vh; overflow-y: auto; width: min(600px, calc(100vw - 32px));
+  }
+  .skill-option {
+    border: 1px solid #444; background: #222; padding: 12px;
+    margin-bottom: 12px; border-radius: 3px; cursor: pointer; transition: all 0.2s;
+  }
+  .skill-option:hover { background: #2a3a4a; border-color: #555; }
+  .skill-option h3 { color: #f1c40f; margin-bottom: 4px; }
+  .skill-option p { color: #bdc3c7; font-size: 0.9rem; line-height: 1.4; }
+  .skill-option-btn {
+    background: #8e44ad; color: #fff; border: none;
+    padding: 8px 16px; font-family: inherit; font-size: 0.9rem;
+    cursor: pointer; border-radius: 3px; margin-top: 8px; width: 100%;
+  }
+  .skill-option-btn:hover { background: #9b59b6; }
 </style>
 </head>
 <body>
@@ -300,6 +319,7 @@
   <button class="action-btn" id="btn-guard">Skill: Guard</button>
   <button class="action-btn" id="btn-potion">Use Potion</button>
   <button class="action-btn primary" id="btn-power" style="display:none">Skill: Power Strike</button>
+  <button class="action-btn primary" id="btn-cleave" style="display:none">Skill: Cleave</button>
   <button class="action-btn primary" id="btn-ascend">Ascend</button>
   <button class="action-btn primary" id="btn-rest">Rest</button>
   <button class="action-btn primary" id="btn-push">Push Deeper</button>
@@ -406,22 +426,35 @@
   </div>
 </div>
 
+<div id="skill-choice-overlay">
+  <div id="skill-choice-modal">
+    <h2>Level 30: Choose Your Skill Branch</h2>
+    <p style="color:#bdc3c7;margin-bottom:16px;font-size:0.95rem;">Select one permanent skill. This choice cannot be changed.</p>
+    <div id="skill-options"></div>
+  </div>
+</div>
+
 <script>
 /* ── Constants ─────────────────────────────────────── */
 const BASE_EXP = 10;
 const POWER_STRIKE_LEVEL = 10;
 const POWER_STRIKE_COOLDOWN = 3;
+const SKILL_CHOICE_LEVEL = 30;
 const POTION_HEAL = 30;
 const POTION_DROP_CHANCE = 0.10;
 const RARE_ARMOR_DROP_CHANCE = 0.05;
 const BASIC_GEAR_DROP_CHANCE = 0.08;
 const ACCESSORY_DROP_CHANCE = 0.05;
-const MAX_FLOOR = 10;
+const MAX_FLOOR = 15;
 const SAVE_KEY = 'swordsmanRpgSave';
-const SAVE_VERSION = 4;
+const SAVE_VERSION = 5;
 const EQUIPMENT_SLOTS = ['weapon', 'armor', 'helmet', 'boots', 'accessory'];
 const MAX_BAG_SLOTS = 5;
 const MAX_POTION_STACK = 10;
+const RARITY_COMMON = 'common';
+const RARITY_UNCOMMON = 'uncommon';
+const RARITY_RARE = 'rare';
+const MULTI_ENEMY_CHANCE = 0.30;
 
 const MONSTER_TEMPLATES = {
   goblin: { name: 'Goblin', rank: 'H', hp: 30, atk: 8, def: 3, exp: 5, gold: 3 },
@@ -431,7 +464,13 @@ const MONSTER_TEMPLATES = {
   ogre:   { name: 'Ogre',   rank: 'F', hp: 150, atk: 18, def: 10, exp: 80, gold: 50, isBoss: true },
   giantSpider: { name: 'Giant Spider', rank: 'F', hp: 120, atk: 22, def: 8, exp: 45, gold: 30 },
   skeletonKnight: { name: 'Skeleton Knight', rank: 'E', hp: 180, atk: 28, def: 14, exp: 60, gold: 40 },
-  minotaur: { name: 'Minotaur', rank: 'E', hp: 280, atk: 35, def: 18, exp: 150, gold: 100, isBoss: true }
+  minotaur: { name: 'Minotaur', rank: 'E', hp: 280, atk: 35, def: 18, exp: 150, gold: 100, isBoss: true },
+  wraith: { name: 'Wraith', rank: 'E', hp: 200, atk: 38, def: 10, exp: 300, gold: 55, immunePhysical: true },
+  griffin: { name: 'Griffin', rank: 'E', hp: 260, atk: 33, def: 14, exp: 300, gold: 50, diveDef: 0.5 },
+  ogreLord: { name: 'Ogre Lord', rank: 'D', hp: 500, atk: 60, def: 28, exp: 1000, gold: 120, enrage: true },
+  basilisk: { name: 'Basilisk', rank: 'D', hp: 420, atk: 55, def: 30, exp: 1000, gold: 110, petrify: 0.15 },
+  lesserWyvern: { name: 'Lesser Wyvern', rank: 'D', hp: 480, atk: 58, def: 22, exp: 1000, gold: 130, fireBreathe: true },
+  chimera: { name: 'Chimera', rank: 'D', hp: 1000, atk: 100, def: 42, exp: 4000, gold: 300, isBoss: true, multiAttack: true }
 };
 
 const ITEMS = {
@@ -473,19 +512,26 @@ const FLOOR_PLANS = {
   7: ['giantSpider', 'skeletonKnight', 'giantSpider'],
   8: ['skeletonKnight', 'skeletonKnight', 'ogre'],
   9: ['skeletonKnight', 'giantSpider', 'skeletonKnight', 'ogre'],
-  10: ['minotaur']
+  10: ['minotaur'],
+  11: ['wraith', 'griffin', 'minotaur'],
+  12: ['griffin', 'wraith', 'griffin'],
+  13: ['ogreLord', 'basilisk', 'lesserWyvern'],
+  14: ['basilisk', 'lesserWyvern', 'ogreLord'],
+  15: ['chimera']
 };
 
 /* ── State ─────────────────────────────────────────── */
 let player = {
   level: 1, atk: 12, agi: 10, def: 8, int: 4, vit: 50, mp: 20,
   exp: 0, gold: 0, hp: 0, maxHp: 0,
-  powerStrikeCooldown: 0, guardActive: false,
+  powerStrikeCooldown: 0, guardActive: false, guardCounterReady: false,
   equipment: createEmptySlots(),
-  bag: createEmptyBag()
+  equipmentRarity: createEmptySlots(),
+  bag: createEmptyBag(),
+  skillChoice: null
 };
 
-let monster = emptyMonster();
+let monsters = [];
 let tower = {
   floor: 1, phase: 'ready', currentIndex: 0,
   floorPlan: [...FLOOR_PLANS[1]], moreComing: false,
@@ -493,12 +539,15 @@ let tower = {
 };
 let pendingLootKey = null;
 let pendingLootQueue = [];
+let pendingSkillChoice = false;
 
 /* ── Helpers ───────────────────────────────────────── */
 function emptyMonster() {
   return { templateKey: null, name: '', rank: '', hp: 0, maxHp: 0,
     atk: 0, def: 0, expReward: 0, goldReward: 0,
-    splits: false, isMini: false, isBoss: false };
+    splits: false, isMini: false, isBoss: false, immunePhysical: false,
+    diveDef: 1, enrage: false, enraged: false, petrify: 0, petrified: false,
+    fireBreathe: false, fireBreathCounter: 0, multiAttack: false, rarity: RARITY_COMMON, rarityBonus: {} };
 }
 
 function createEmptySlots() {
@@ -518,6 +567,46 @@ function createEmptyBag() {
 }
 
 function itemFromKey(key) { return key && ITEMS[key] ? ITEMS[key] : null; }
+
+function getRarityColor(rarity) {
+  if (rarity === RARITY_RARE) return 'rare';
+  if (rarity === RARITY_UNCOMMON) return 'uncommon';
+  return 'common';
+}
+
+function getRandomRarity() {
+  const r = Math.random();
+  if (r < 0.70) return RARITY_COMMON;
+  if (r < 0.90) return RARITY_UNCOMMON;
+  return RARITY_RARE;
+}
+
+function generateRarityBonus(rarity, itemKey) {
+  const bonus = {};
+  if (rarity === RARITY_COMMON) return bonus;
+  const item = itemFromKey(itemKey);
+  if (!item) return bonus;
+  const stats = ['atkBonus', 'defBonus', 'agiBonus', 'critBonus'];
+  const validStats = stats.filter(s => item[s] !== undefined && item[s] !== 0);
+  if (validStats.length === 0) return bonus;
+  if (rarity === RARITY_UNCOMMON) {
+    const stat = validStats[Math.floor(Math.random() * validStats.length)];
+    bonus[stat] = Math.max(1, Math.round((item[stat] || 0) * 0.10));
+  } else if (rarity === RARITY_RARE) {
+    if (Math.random() < 0.5 && validStats.length > 0) {
+      const stat = validStats[Math.floor(Math.random() * validStats.length)];
+      bonus[stat] = Math.max(1, Math.round((item[stat] || 0) * 0.20));
+    } else if (validStats.length > 1) {
+      const chosen = validStats.sort(() => Math.random() - 0.5).slice(0, 2);
+      chosen.forEach(stat => {
+        bonus[stat] = Math.max(1, Math.round((item[stat] || 0) * 0.10));
+      });
+    } else if (validStats.length > 0) {
+      bonus[validStats[0]] = Math.max(1, Math.round((item[validStats[0]] || 0) * 0.20));
+    }
+  }
+  return bonus;
+}
 
 function normalizeUnlockedFloors(savedFloors, highestFloor) {
   const unlocked = new Set(Array.isArray(savedFloors) ? savedFloors : []);
@@ -560,10 +649,12 @@ function addPotionToBag() {
   return false;
 }
 
-function addGearToBag(itemKey) {
+function addGearToBag(itemKey, rarity, bonus) {
+  rarity = rarity || RARITY_COMMON;
+  bonus = bonus || {};
   for (let i = 0; i < MAX_BAG_SLOTS; i++) {
     if (!player.bag[i]) {
-      player.bag[i] = { type: 'gear', key: itemKey };
+      player.bag[i] = { type: 'gear', key: itemKey, rarity, bonus };
       return true;
     }
   }
@@ -598,10 +689,13 @@ function saveGame() {
         int: player.int, vit: player.vit, mp: player.mp,
         exp: player.exp, gold: player.gold, hp: player.hp, maxHp: player.maxHp,
         powerStrikeCooldown: player.powerStrikeCooldown, guardActive: player.guardActive,
+        guardCounterReady: player.guardCounterReady,
         equipment: { ...player.equipment },
-        bag: player.bag.map(s => s ? { ...s } : null)
+        equipmentRarity: { ...player.equipmentRarity },
+        bag: player.bag.map(s => s ? { ...s } : null),
+        skillChoice: player.skillChoice
       },
-      monster: { ...monster },
+      monsters: monsters.map(m => ({ ...m })),
       tower: { ...tower, floorPlan: [...tower.floorPlan] }
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
@@ -626,7 +720,7 @@ function migrateV3ToBag(savedPlayer) {
   if (oldInv) {
     EQUIPMENT_SLOTS.forEach(slot => {
       if (oldInv[slot] && next < MAX_BAG_SLOTS) {
-        bag[next++] = { type: 'gear', key: oldInv[slot] };
+        bag[next++] = { type: 'gear', key: oldInv[slot], rarity: RARITY_COMMON, bonus: {} };
       }
     });
   }
@@ -653,18 +747,30 @@ function loadGame() {
     player.maxHp = saveData.player.maxHp;
     player.powerStrikeCooldown = saveData.player.powerStrikeCooldown || 0;
     player.guardActive = saveData.player.guardActive || false;
+    player.guardCounterReady = saveData.player.guardCounterReady || false;
     player.equipment = normalizeSlots(saveData.player.equipment);
+    player.equipmentRarity = normalizeSlots(saveData.player.equipmentRarity || {});
+    player.skillChoice = saveData.player.skillChoice || null;
 
     if (saveData.version < 4) {
       player.bag = migrateV3ToBag(saveData.player);
     } else {
       player.bag = Array.isArray(saveData.player.bag)
-        ? saveData.player.bag.map(s => s ? { ...s } : null) : createEmptyBag();
+        ? saveData.player.bag.map(s => {
+            if (!s) return null;
+            return {
+              type: s.type,
+              count: s.count,
+              key: s.key,
+              rarity: s.rarity || RARITY_COMMON,
+              bonus: s.bonus || {}
+            };
+          }) : createEmptyBag();
       while (player.bag.length < MAX_BAG_SLOTS) player.bag.push(null);
       player.bag.length = MAX_BAG_SLOTS;
     }
 
-    Object.assign(monster, saveData.monster || emptyMonster());
+    monsters = Array.isArray(saveData.monsters) ? saveData.monsters.map(m => ({ ...m })) : [];
     Object.assign(tower, saveData.tower);
     tower.floorPlan = Array.isArray(saveData.tower?.floorPlan) ? [...saveData.tower.floorPlan] : getFloorPlan(tower.floor);
     tower.highestFloorReached = saveData.tower?.highestFloorReached || Math.max(1, tower.floor || 1);
@@ -674,7 +780,7 @@ function loadGame() {
     recalcHp();
     player.hp = Math.max(0, Math.min(player.hp, player.maxHp));
     player.guardActive = false;
-    if (tower.phase === 'combat' && (!monster.name || monster.hp <= 0)) spawnCurrentFloorMonster();
+    if (tower.phase === 'combat' && monsters.length === 0) spawnCurrentFloorMonsters();
     return true;
   } catch (err) {
     return false;
@@ -682,28 +788,44 @@ function loadGame() {
 }
 
 /* ── Stat Calculations ─────────────────────────────── */
+function getItemStatBonus(itemKey, rarity, bonus) {
+  bonus = bonus || {};
+  const item = itemFromKey(itemKey);
+  if (!item) return { atk: 0, def: 0, agi: 0, crit: 0 };
+  const result = {
+    atk: (item.atkBonus || 0) + (bonus.atkBonus || 0),
+    def: (item.defBonus || 0) + (bonus.defBonus || 0),
+    agi: (item.agiBonus || 0) + (bonus.agiBonus || 0),
+    crit: (item.critBonus || 0) + (bonus.critBonus || 0)
+  };
+  return result;
+}
+
 function getTotalAtk() {
   return player.atk + EQUIPMENT_SLOTS.reduce((t, s) => {
-    const item = itemFromKey(player.equipment[s]);
-    return t + (item ? item.atkBonus || 0 : 0);
+    const stats = getItemStatBonus(player.equipment[s], player.equipmentRarity[s], {});
+    return t + stats.atk;
   }, 0);
 }
+
 function getTotalDef() {
   return player.def + EQUIPMENT_SLOTS.reduce((t, s) => {
-    const item = itemFromKey(player.equipment[s]);
-    return t + (item ? item.defBonus || 0 : 0);
+    const stats = getItemStatBonus(player.equipment[s], player.equipmentRarity[s], {});
+    return t + stats.def;
   }, 0);
 }
+
 function getTotalAgi() {
   return player.agi + EQUIPMENT_SLOTS.reduce((t, s) => {
-    const item = itemFromKey(player.equipment[s]);
-    return t + (item ? item.agiBonus || 0 : 0);
+    const stats = getItemStatBonus(player.equipment[s], player.equipmentRarity[s], {});
+    return t + stats.agi;
   }, 0);
 }
+
 function getCritChance() {
   return 0.10 + EQUIPMENT_SLOTS.reduce((t, s) => {
-    const item = itemFromKey(player.equipment[s]);
-    return t + (item ? item.critBonus || 0 : 0);
+    const stats = getItemStatBonus(player.equipment[s], player.equipmentRarity[s], {});
+    return t + stats.crit;
   }, 0);
 }
 
@@ -712,10 +834,12 @@ function initPlayer() {
   player.level = 1; player.atk = 12; player.agi = 10; player.def = 8;
   player.int = 4; player.vit = 50; player.mp = 20;
   player.exp = 0; player.gold = 0;
-  player.powerStrikeCooldown = 0; player.guardActive = false;
+  player.powerStrikeCooldown = 0; player.guardActive = false; player.guardCounterReady = false;
   player.equipment = createEmptySlots();
+  player.equipmentRarity = createEmptySlots();
   player.bag = createEmptyBag();
   player.bag[0] = { type: 'potion', count: 1 };
+  player.skillChoice = null;
   recalcHp();
 }
 
@@ -740,8 +864,45 @@ function levelUp() {
     if (oldLevel < POWER_STRIKE_LEVEL && player.level >= POWER_STRIKE_LEVEL) {
       log('New skill unlocked: Power Strike!', 'levelup');
     }
+    if (player.level === SKILL_CHOICE_LEVEL && !player.skillChoice) {
+      pendingSkillChoice = true;
+    }
     needed = expNeeded(player.level);
   }
+}
+
+function showSkillChoice() {
+  if (player.skillChoice) return;
+  pendingSkillChoice = false;
+  const modal = document.getElementById('skill-choice-modal');
+  const opts = document.getElementById('skill-options');
+  opts.innerHTML = `
+    <div class="skill-option">
+      <h3>A: Cleave</h3>
+      <p>Hits 2 enemies simultaneously (or 1.3x damage to a single enemy). Essential for handling multiple foes on higher floors.</p>
+      <button class="skill-option-btn" onclick="chooseSkill('cleave')">Choose Cleave</button>
+    </div>
+    <div class="skill-option">
+      <h3>B: Parry</h3>
+      <p>Passive counter: After using Guard, automatically counter the next enemy attack for 50% ATK damage. Guard becomes Guard + Counter.</p>
+      <button class="skill-option-btn" onclick="chooseSkill('parry')">Choose Parry</button>
+    </div>
+  `;
+  document.getElementById('skill-choice-overlay').classList.add('active');
+  disableButtons(true);
+}
+
+function chooseSkill(skillKey) {
+  player.skillChoice = skillKey;
+  document.getElementById('skill-choice-overlay').classList.remove('active');
+  if (player.skillChoice === 'cleave') {
+    log('Cleave learned! You can now hit 2 enemies at once.', 'levelup');
+  } else {
+    log('Parry learned! Guard now automatically counters the next attack.', 'levelup');
+  }
+  updateStats();
+  disableButtons(false);
+  saveGame();
 }
 
 /* ── Gear Summary ──────────────────────────────────── */
@@ -749,9 +910,11 @@ function renderGearSummary() {
   const summary = document.getElementById('gear-summary');
   summary.innerHTML = EQUIPMENT_SLOTS.map(slot => {
     const item = itemFromKey(player.equipment[slot]);
-    const value = item ? item.name + ' (' + item.statText + ')' : 'None';
-    const cls = item ? 'item-name' : 'gear-empty';
-    return '<div class="gear-line">' + formatSlotLabel(slot) + ': <span class="' + cls + '">' + value + '</span></div>';
+    if (!item) return '<div class="gear-line">Armor: <span class="gear-empty">None</span></div>';
+    const rarity = player.equipmentRarity[slot] || RARITY_COMMON;
+    const rarityColor = getRarityColor(rarity);
+    const statText = item.statText;
+    return '<div class="gear-line">' + formatSlotLabel(slot) + ': <span class="item-name ' + rarityColor + '">' + item.name + ' (' + statText + ')</span></div>';
   }).join('');
 }
 
@@ -763,9 +926,12 @@ function renderTextBar(current, max, width) {
 }
 
 function monsterHealthText() {
-  if (!monster.name) return '';
-  const currentHp = Math.max(0, monster.hp);
-  return monster.name + ' [' + renderTextBar(currentHp, monster.maxHp, 8) + '] ' + currentHp + '/' + monster.maxHp + ' HP';
+  if (monsters.length === 0) return '';
+  const healthTexts = monsters.map(m => {
+    const currentHp = Math.max(0, m.hp);
+    return m.name + ' [' + renderTextBar(currentHp, m.maxHp, 8) + '] ' + currentHp + '/' + m.maxHp + ' HP' + (m.petrified ? ' (Petrified)' : '') + (m.enraged ? ' (Enraged)' : '');
+  });
+  return healthTexts.join(' | ');
 }
 
 /* ── Floor / Tower ─────────────────────────────────── */
@@ -787,7 +953,8 @@ function setupFloor(floor) {
   tower.floorPlan = getFloorPlan(floor);
   tower.moreComing = floor > MAX_FLOOR;
   unlockFloor(floor);
-  monster = emptyMonster();
+  monsters = [];
+  player.guardCounterReady = false;
   updateTowerUI(); updateStats(); disableButtons(false); saveGame();
 }
 
@@ -816,8 +983,10 @@ function renderCamp(message) {
   const equipment = document.getElementById('camp-equipment');
   equipment.innerHTML = '<h2>Equipment</h2>' + EQUIPMENT_SLOTS.map(slot => {
     const item = itemFromKey(player.equipment[slot]);
-    const value = item ? item.name + ' (' + item.statText + ')' : 'None equipped';
-    return '<div class="camp-gear-line">' + formatSlotLabel(slot) + ': <span class="' + (item ? 'item-name' : 'camp-gear-empty') + '">' + value + '</span></div>';
+    const rarity = player.equipmentRarity[slot] || RARITY_COMMON;
+    const rarityColor = item ? getRarityColor(rarity) : 'common';
+    const value = item ? '<span class="item-name ' + rarityColor + '">' + item.name + ' (' + item.statText + ')</span>' : 'None equipped';
+    return '<div class="camp-gear-line">' + formatSlotLabel(slot) + ': ' + value + '</div>';
   }).join('');
   if (message !== undefined) document.getElementById('camp-message').textContent = message;
 }
@@ -835,14 +1004,15 @@ function hideCamp() {
 
 function enterTowerFromCamp() {
   player.guardActive = false;
+  player.guardCounterReady = false;
   tower.phase = 'select'; tower.currentIndex = 0; tower.moreComing = false;
   tower.floorPlan = getFloorPlan(Math.min(Math.max(1, tower.floor), MAX_FLOOR));
-  monster = emptyMonster();
+  monsters = [];
   updateStats(); updateTowerUI(); saveGame(); showFloorSelection();
 }
 
 function restAtCampfire() {
-  player.hp = player.maxHp; player.mp = 20; player.guardActive = false;
+  player.hp = player.maxHp; player.mp = 20; player.guardActive = false; player.guardCounterReady = false;
   log('You rest by the fire and feel refreshed.', 'heal');
   updateStats(); updateTowerUI(); saveGame();
   renderCamp('You rest by the fire and feel refreshed.');
@@ -860,7 +1030,12 @@ function renderFloorSelection() {
     7: ['Floor 7', 'F/E-rank, hard - recommended level 8+.'],
     8: ['Floor 8', 'E-rank, very hard - recommended level 8+.'],
     9: ['Floor 9', 'E-rank gauntlet - recommended level 9+.'],
-    10: ['Floor 10', 'E-rank Boss Minotaur - recommended level 10+.']
+    10: ['Floor 10', 'E-rank Boss Minotaur - recommended level 10+.'],
+    11: ['Floor 11', 'E-rank, deadly - recommended level 15+.'],
+    12: ['Floor 12', 'E-rank, deadly - recommended level 15+.'],
+    13: ['Floor 13', 'D-rank, infernal - recommended level 20+.'],
+    14: ['Floor 14', 'D-rank, infernal - recommended level 20+.'],
+    15: ['Floor 15', 'D-rank Boss Chimera - recommended level 25+.']
   };
   buttonsEl.innerHTML = '';
   for (let f = 1; f <= MAX_FLOOR; f++) {
@@ -871,10 +1046,6 @@ function renderFloorSelection() {
     btn.innerHTML = labels[f][0] + '<small>' + labels[f][1] + (btn.disabled ? ' Locked.' : '') + '</small>';
     buttonsEl.appendChild(btn);
   }
-  const cs = document.createElement('button');
-  cs.className = 'floor-choice'; cs.disabled = true;
-  cs.innerHTML = 'Floor 11+<small>Coming soon.</small>';
-  buttonsEl.appendChild(cs);
 }
 
 function selectFloor(floor) {
@@ -885,39 +1056,61 @@ function selectFloor(floor) {
 
 function startFloor() {
   if (tower.phase !== 'ready') return;
-  tower.phase = 'combat'; tower.currentIndex = 0; player.guardActive = false;
+  tower.phase = 'combat'; tower.currentIndex = 0; player.guardActive = false; player.guardCounterReady = false;
   log('You ascend to floor ' + tower.floor + '.', 'system');
-  spawnCurrentFloorMonster(); updateTowerUI(); updateStats(); disableButtons(false); saveGame();
+  spawnCurrentFloorMonsters(); updateTowerUI(); updateStats(); disableButtons(false); saveGame();
 }
 
-function spawnCurrentFloorMonster() {
-  const key = tower.floorPlan[tower.currentIndex];
-  if (!key) { clearFloor(); return; }
-  loadMonsterFromTemplate(key);
-  log('Floor ' + tower.floor + ' battle ' + (tower.currentIndex + 1) + '/' + tower.floorPlan.length + ': ' + monster.name + ' appears! (HP ' + monster.hp + ')', 'enemy');
+function spawnCurrentFloorMonsters() {
+  monsters = [];
+  const baseKey = tower.floorPlan[tower.currentIndex];
+  if (!baseKey) { clearFloor(); return; }
+  loadMonsterFromTemplate(baseKey);
+  if (Math.random() < MULTI_ENEMY_CHANCE && !MONSTER_TEMPLATES[baseKey].isBoss) {
+    loadMonsterFromTemplate(baseKey);
+    log('Floor ' + tower.floor + ' battle ' + (tower.currentIndex + 1) + '/' + tower.floorPlan.length + ': ' + monsters[0].name + ' x2 appear! (HP ' + monsters[0].hp + ' each)', 'enemy');
+  } else {
+    log('Floor ' + tower.floor + ' battle ' + (tower.currentIndex + 1) + '/' + tower.floorPlan.length + ': ' + monsters[0].name + ' appears! (HP ' + monsters[0].hp + ')', 'enemy');
+  }
 }
 
 function loadMonsterFromTemplate(key) {
   const tmpl = MONSTER_TEMPLATES[key];
-  monster.templateKey = key; monster.name = tmpl.name; monster.rank = tmpl.rank;
-  monster.maxHp = tmpl.hp; monster.hp = tmpl.hp; monster.atk = tmpl.atk; monster.def = tmpl.def;
-  monster.expReward = tmpl.exp; monster.goldReward = tmpl.gold;
-  monster.splits = tmpl.splits || false; monster.isMini = false; monster.isBoss = tmpl.isBoss || false;
+  const rarity = getRandomRarity();
+  const m = {
+    templateKey: key, name: tmpl.name, rank: tmpl.rank,
+    maxHp: tmpl.hp, hp: tmpl.hp, atk: tmpl.atk, def: tmpl.def,
+    expReward: tmpl.exp, goldReward: tmpl.gold,
+    splits: tmpl.splits || false, isMini: false, isBoss: tmpl.isBoss || false,
+    immunePhysical: tmpl.immunePhysical || false,
+    diveDef: tmpl.diveDef !== undefined ? tmpl.diveDef : 1,
+    enrage: tmpl.enrage || false, enraged: false,
+    petrify: tmpl.petrify || 0, petrified: false,
+    fireBreathe: tmpl.fireBreathe || false, fireBreathCounter: 0,
+    multiAttack: tmpl.multiAttack || false, rarity, rarityBonus: {}
+  };
+  monsters.push(m);
 }
 
 function spawnMiniSlime() {
   const p = MONSTER_TEMPLATES.slime;
-  monster.templateKey = 'slime'; monster.name = 'Mini-Slime'; monster.rank = 'H';
-  monster.maxHp = Math.floor(p.hp / 2); monster.hp = monster.maxHp;
-  monster.atk = p.atk; monster.def = p.def;
-  monster.expReward = 0; monster.goldReward = 0;
-  monster.splits = false; monster.isMini = true; monster.isBoss = false;
+  const m = {
+    templateKey: 'slime', name: 'Mini-Slime', rank: 'H',
+    maxHp: Math.floor(p.hp / 2), hp: Math.floor(p.hp / 2),
+    atk: p.atk, def: p.def,
+    expReward: 0, goldReward: 0,
+    splits: false, isMini: true, isBoss: false,
+    immunePhysical: false, diveDef: 1, enrage: false, enraged: false,
+    petrify: 0, petrified: false, fireBreathe: false, fireBreathCounter: 0,
+    multiAttack: false, rarity: RARITY_COMMON, rarityBonus: {}
+  };
+  monsters.push(m);
 }
 
 function clearFloor() {
   unlockFloor(tower.floor);
   tower.phase = tower.floor >= MAX_FLOOR ? 'complete' : 'cleared';
-  monster = emptyMonster(); player.guardActive = false;
+  monsters = []; player.guardActive = false; player.guardCounterReady = false;
   if (tower.floor >= MAX_FLOOR) {
     tower.moreComing = true;
     log('The tower yields. More floors coming soon.', 'levelup');
@@ -930,7 +1123,7 @@ function clearFloor() {
 
 function restAfterFloor() {
   if (tower.phase !== 'cleared' && tower.phase !== 'complete') return;
-  player.hp = player.maxHp; player.mp = 20; player.guardActive = false;
+  player.hp = player.maxHp; player.mp = 20; player.guardActive = false; player.guardCounterReady = false;
   log('You rest and recover to full HP.', 'heal');
   updateStats(); disableButtons(false); saveGame();
 }
@@ -943,10 +1136,10 @@ function pushDeeper() {
 
 function retreatToSelection() {
   if (tower.phase === 'combat') return;
-  player.hp = player.maxHp; player.mp = 20; player.guardActive = false;
+  player.hp = player.maxHp; player.mp = 20; player.guardActive = false; player.guardCounterReady = false;
   tower.phase = 'select'; tower.currentIndex = 0;
   tower.floorPlan = getFloorPlan(Math.min(tower.floor, MAX_FLOOR));
-  monster = emptyMonster();
+  monsters = [];
   log('You retreat from the tower and recover to full HP.', 'heal');
   updateStats(); updateTowerUI(); saveGame(); showCamp('You return to camp, rested and ready.');
 }
@@ -955,8 +1148,8 @@ function retreatToSelection() {
 function handlePlayerDeath() {
   const lostGold = Math.floor(player.gold * 0.10);
   player.gold = Math.max(0, player.gold - lostGold);
-  player.hp = player.maxHp; player.mp = 20; player.guardActive = false;
-  monster = emptyMonster();
+  player.hp = player.maxHp; player.mp = 20; player.guardActive = false; player.guardCounterReady = false;
+  monsters = [];
   document.getElementById('defeat-gold-lost').textContent = lostGold > 0 ? 'You lost ' + lostGold + ' gold.' : 'No gold was lost.';
   const box = document.getElementById('defeat-box');
   box.style.animation = 'none'; box.offsetHeight; box.style.animation = '';
@@ -982,31 +1175,40 @@ function awardMonsterRewards(defeatedMonster) {
   }
 }
 
-function handleMonsterDeath() {
-  const defeatedMonster = { ...monster };
-  const shouldSplit = monster.splits && !monster.isMini;
+function handleMonsterDeath(monsterIndex) {
+  if (monsterIndex < 0 || monsterIndex >= monsters.length) return;
+  const defeatedMonster = { ...monsters[monsterIndex] };
+  const shouldSplit = defeatedMonster.splits && !defeatedMonster.isMini;
   awardMonsterRewards(defeatedMonster);
   tryDrops(defeatedMonster);
   levelUp();
   if (shouldSplit) {
     spawnMiniSlime();
-    log('The Slime splits! A Mini-Slime appears! (HP ' + monster.hp + ')', 'split');
+    log('The Slime splits! A Mini-Slime appears! (HP ' + monsters[monsters.length - 1].hp + ')', 'split');
   } else {
-    tower.currentIndex++;
-    if (defeatedMonster.isBoss && defeatedMonster.name === 'Ogre') {
-      log("Boss loot! The Ogre drops Chainmail, an Iron Helm, Iron Greaves, and a Warrior's Ring.", 'loot');
-      receiveEquipment('chainmail', true);
-      receiveEquipment('ironHelm', true);
-      receiveEquipment('ironGreaves', true);
-      receiveEquipment('warriorsRing', true);
+    monsters.splice(monsterIndex, 1);
+    if (monsters.length === 0) {
+      tower.currentIndex++;
+      if (defeatedMonster.isBoss && defeatedMonster.name === 'Ogre') {
+        log("Boss loot! The Ogre drops Chainmail, an Iron Helm, Iron Greaves, and a Warrior's Ring.", 'loot');
+        receiveEquipment('chainmail', true);
+        receiveEquipment('ironHelm', true);
+        receiveEquipment('ironGreaves', true);
+        receiveEquipment('warriorsRing', true);
+      }
+      if (defeatedMonster.isBoss && defeatedMonster.name === 'Minotaur') {
+        log('Boss loot! The Minotaur drops a Steel Sword and a Guardian Amulet.', 'loot');
+        receiveEquipment('steelSword', true);
+        receiveEquipment('guardianAmulet', true);
+      }
+      if (defeatedMonster.isBoss && defeatedMonster.name === 'Chimera') {
+        log('Boss loot! The Chimera drops an Ethereal Blade and a Crown of Kings.', 'loot');
+        receiveEquipment('steelSword', true);
+        receiveEquipment('guardianAmulet', true);
+      }
+      if (tower.currentIndex >= tower.floorPlan.length) clearFloor();
+      else spawnCurrentFloorMonsters();
     }
-    if (defeatedMonster.isBoss && defeatedMonster.name === 'Minotaur') {
-      log('Boss loot! The Minotaur drops a Steel Sword and a Guardian Amulet.', 'loot');
-      receiveEquipment('steelSword', true);
-      receiveEquipment('guardianAmulet', true);
-    }
-    if (tower.currentIndex >= tower.floorPlan.length) clearFloor();
-    else spawnCurrentFloorMonster();
   }
 }
 
@@ -1019,50 +1221,82 @@ function tryDrops(defeatedMonster) {
       log('The ' + defeatedMonster.name + ' dropped a Health Potion, but your bag is full!', 'system');
     }
   }
-  /* Floors 1-4: leather tier drops */
   if (tower.floor < 5 && Math.random() < RARE_ARMOR_DROP_CHANCE) {
+    const rarity = getRandomRarity();
+    const bonus = generateRarityBonus(rarity, 'leatherArmor');
     log('Rare drop! Leather Armor fell from the ' + defeatedMonster.name + '.', 'loot');
-    receiveEquipment('leatherArmor', true);
+    receiveEquipment('leatherArmor', true, rarity, bonus);
   }
   if (tower.floor < 5 && Math.random() < BASIC_GEAR_DROP_CHANCE) {
+    const rarity = getRandomRarity();
+    const bonus = generateRarityBonus(rarity, 'leatherCap');
     log('Equipment drop! Leather Cap fell from the ' + defeatedMonster.name + '.', 'loot');
-    receiveEquipment('leatherCap', true);
+    receiveEquipment('leatherCap', true, rarity, bonus);
   }
   if (tower.floor < 5 && Math.random() < BASIC_GEAR_DROP_CHANCE) {
+    const rarity = getRandomRarity();
+    const bonus = generateRarityBonus(rarity, 'leatherBoots');
     log('Equipment drop! Leather Boots fell from the ' + defeatedMonster.name + '.', 'loot');
-    receiveEquipment('leatherBoots', true);
+    receiveEquipment('leatherBoots', true, rarity, bonus);
   }
   if ((tower.floor === 3 || tower.floor === 4) && Math.random() < ACCESSORY_DROP_CHANCE) {
+    const rarity = getRandomRarity();
+    const bonus = generateRarityBonus(rarity, 'luckyCharm');
     log('Rare drop! Lucky Charm fell from the ' + defeatedMonster.name + '.', 'loot');
-    receiveEquipment('luckyCharm', true);
+    receiveEquipment('luckyCharm', true, rarity, bonus);
   }
-  /* Floors 6-9: iron tier drops */
   if (tower.floor >= 6 && tower.floor < 10 && !defeatedMonster.isBoss) {
     if (Math.random() < RARE_ARMOR_DROP_CHANCE) {
+      const rarity = getRandomRarity();
+      const bonus = generateRarityBonus(rarity, 'ironSword');
       log('Rare drop! Iron Sword fell from the ' + defeatedMonster.name + '.', 'loot');
-      receiveEquipment('ironSword', true);
+      receiveEquipment('ironSword', true, rarity, bonus);
     }
     if (Math.random() < RARE_ARMOR_DROP_CHANCE) {
+      const rarity = getRandomRarity();
+      const bonus = generateRarityBonus(rarity, 'chainmail');
       log('Rare drop! Chainmail fell from the ' + defeatedMonster.name + '.', 'loot');
-      receiveEquipment('chainmail', true);
+      receiveEquipment('chainmail', true, rarity, bonus);
     }
     if (Math.random() < BASIC_GEAR_DROP_CHANCE) {
+      const rarity = getRandomRarity();
+      const bonus = generateRarityBonus(rarity, 'ironHelm');
       log('Equipment drop! Iron Helm fell from the ' + defeatedMonster.name + '.', 'loot');
-      receiveEquipment('ironHelm', true);
+      receiveEquipment('ironHelm', true, rarity, bonus);
     }
     if (Math.random() < BASIC_GEAR_DROP_CHANCE) {
+      const rarity = getRandomRarity();
+      const bonus = generateRarityBonus(rarity, 'ironGreaves');
       log('Equipment drop! Iron Greaves fell from the ' + defeatedMonster.name + '.', 'loot');
-      receiveEquipment('ironGreaves', true);
+      receiveEquipment('ironGreaves', true, rarity, bonus);
     }
     if (Math.random() < ACCESSORY_DROP_CHANCE) {
+      const rarity = getRandomRarity();
+      const bonus = generateRarityBonus(rarity, 'warriorsRing');
       log("Rare drop! Warrior's Ring fell from the " + defeatedMonster.name + '.', 'loot');
-      receiveEquipment('warriorsRing', true);
+      receiveEquipment('warriorsRing', true, rarity, bonus);
+    }
+  }
+  if (tower.floor >= 11 && tower.floor < 15 && !defeatedMonster.isBoss) {
+    if (Math.random() < RARE_ARMOR_DROP_CHANCE) {
+      const rarity = getRandomRarity();
+      const bonus = generateRarityBonus(rarity, 'steelSword');
+      log('Rare drop! Steel Sword fell from the ' + defeatedMonster.name + '.', 'loot');
+      receiveEquipment('steelSword', true, rarity, bonus);
+    }
+    if (Math.random() < BASIC_GEAR_DROP_CHANCE) {
+      const rarity = getRandomRarity();
+      const bonus = generateRarityBonus(rarity, 'guardianAmulet');
+      log('Rare drop! Guardian Amulet fell from the ' + defeatedMonster.name + '.', 'loot');
+      receiveEquipment('guardianAmulet', true, rarity, bonus);
     }
   }
 }
 
 /* ── Equipment Receive / Loot ──────────────────────── */
-function receiveEquipment(itemKey, promptWhenOccupied) {
+function receiveEquipment(itemKey, promptWhenOccupied, rarity, bonus) {
+  rarity = rarity || RARITY_COMMON;
+  bonus = bonus || {};
   const item = itemFromKey(itemKey);
   if (!item) return false;
   if (player.equipment[item.slot] === itemKey || bagHasGear(itemKey)) {
@@ -1071,15 +1305,17 @@ function receiveEquipment(itemKey, promptWhenOccupied) {
   }
   if (!player.equipment[item.slot]) {
     player.equipment[item.slot] = itemKey;
+    player.equipmentRarity[item.slot] = rarity;
     log('Auto-equipped ' + item.name + ' (' + item.statText + ').', 'loot');
     updateStats();
     return true;
   }
   if (promptWhenOccupied) {
-    queueLootPrompt(itemKey);
+    pendingLootQueue.push({ key: itemKey, rarity, bonus });
+    if (!pendingLootKey) showNextLootPrompt();
     return true;
   }
-  if (addGearToBag(itemKey)) {
+  if (addGearToBag(itemKey, rarity, bonus)) {
     log(item.name + ' added to bag.', 'loot');
     return true;
   }
@@ -1087,15 +1323,16 @@ function receiveEquipment(itemKey, promptWhenOccupied) {
   return false;
 }
 
-function queueLootPrompt(itemKey) {
-  pendingLootQueue.push(itemKey);
+function queueLootPrompt(itemKey, rarity, bonus) {
+  pendingLootQueue.push({ key: itemKey, rarity, bonus });
   if (!pendingLootKey) showNextLootPrompt();
 }
 
 function showNextLootPrompt() {
-  pendingLootKey = pendingLootQueue.shift() || null;
-  if (!pendingLootKey) { closeLootPrompt(); return; }
-  const item = itemFromKey(pendingLootKey);
+  const pending = pendingLootQueue.shift();
+  if (!pending) { closeLootPrompt(); pendingLootKey = null; return; }
+  pendingLootKey = pending;
+  const item = itemFromKey(pending.key);
   document.getElementById('loot-message').textContent = 'Equip ' + item.name + ' (' + item.statText + ')?';
   document.getElementById('loot-overlay').classList.add('active');
 }
@@ -1104,11 +1341,13 @@ function closeLootPrompt() { document.getElementById('loot-overlay').classList.r
 
 function acceptLootPrompt() {
   if (!pendingLootKey) return;
-  const item = itemFromKey(pendingLootKey);
+  const item = itemFromKey(pendingLootKey.key);
   const oldItemKey = player.equipment[item.slot];
-  player.equipment[item.slot] = pendingLootKey;
+  player.equipment[item.slot] = pendingLootKey.key;
+  player.equipmentRarity[item.slot] = pendingLootKey.rarity;
   if (oldItemKey) {
-    if (addGearToBag(oldItemKey)) {
+    const oldRarity = player.equipmentRarity[item.slot] || RARITY_COMMON;
+    if (addGearToBag(oldItemKey, oldRarity, {})) {
       log(ITEMS[oldItemKey].name + ' moved to bag.', 'loot');
     } else {
       log(ITEMS[oldItemKey].name + ' was lost (bag full).', 'loot');
@@ -1121,8 +1360,8 @@ function acceptLootPrompt() {
 
 function declineLootPrompt() {
   if (!pendingLootKey) return;
-  const item = itemFromKey(pendingLootKey);
-  if (addGearToBag(pendingLootKey)) {
+  const item = itemFromKey(pendingLootKey.key);
+  if (addGearToBag(pendingLootKey.key, pendingLootKey.rarity, pendingLootKey.bonus)) {
     log(item.name + ' added to bag.', 'loot');
   } else {
     log(item.name + ' was left behind (bag full).', 'loot');
@@ -1158,7 +1397,8 @@ function renderBagUI() {
     } else {
       const item = ITEMS[slot.key];
       const price = SELL_PRICES[slot.key] || 0;
-      html += '<span><span class="item-name">' + item.name + '</span> <span class="item-stat">(' + item.statText + ')</span></span>';
+      const rarityColor = getRarityColor(slot.rarity || RARITY_COMMON);
+      html += '<span><span class="item-name ' + rarityColor + '">' + item.name + '</span> <span class="item-stat">(' + item.statText + ')</span></span>';
       html += '<span class="bag-btns">';
       html += '<button class="mini-btn buy" onclick="equipFromBag(' + i + ')">Equip</button>';
       if (price > 0) html += '<button class="mini-btn sell" onclick="sellBagSlot(' + i + ')">Sell (' + price + 'g)</button>';
@@ -1174,7 +1414,8 @@ function renderBagUI() {
     const label = formatSlotLabel(slot);
     html += '<div class="bag-slot">';
     if (item) {
-      html += '<span><span class="slot-label">' + label + ':</span> <span class="item-name">' + item.name + '</span> <span class="item-stat">(' + item.statText + ')</span></span>';
+      const rarityColor = getRarityColor(player.equipmentRarity[slot] || RARITY_COMMON);
+      html += '<span><span class="slot-label">' + label + ':</span> <span class="item-name ' + rarityColor + '">' + item.name + '</span> <span class="item-stat">(' + item.statText + ')</span></span>';
       html += '<button class="mini-btn" onclick="unequipFromBag(\'' + slot + '\')">Unequip</button>';
     } else {
       html += '<span><span class="slot-label">' + label + ':</span> <span class="empty">None</span></span>';
@@ -1191,9 +1432,11 @@ function equipFromBag(index) {
   const item = ITEMS[slot.key];
   const equipSlot = item.slot;
   const oldKey = player.equipment[equipSlot];
+  const oldRarity = player.equipmentRarity[equipSlot] || RARITY_COMMON;
   player.equipment[equipSlot] = slot.key;
+  player.equipmentRarity[equipSlot] = slot.rarity || RARITY_COMMON;
   if (oldKey) {
-    player.bag[index] = { type: 'gear', key: oldKey };
+    player.bag[index] = { type: 'gear', key: oldKey, rarity: oldRarity, bonus: {} };
     log('Swapped: equipped ' + item.name + ', ' + ITEMS[oldKey].name + ' to bag.', 'loot');
   } else {
     player.bag[index] = null;
@@ -1210,8 +1453,10 @@ function unequipFromBag(slot) {
     renderBagUI();
     return;
   }
-  addGearToBag(itemKey);
+  const rarity = player.equipmentRarity[slot] || RARITY_COMMON;
+  addGearToBag(itemKey, rarity, {});
   player.equipment[slot] = null;
+  player.equipmentRarity[slot] = null;
   log('Unequipped ' + ITEMS[itemKey].name + '.', 'loot');
   updateStats(); renderBagUI(); saveGame();
 }
@@ -1289,7 +1534,7 @@ function buyEquipment(itemKey) {
     log('No room for ' + item.name + '. Bag is full.', 'system'); return;
   }
   player.gold -= cost;
-  receiveEquipment(itemKey, false);
+  receiveEquipment(itemKey, false, RARITY_COMMON, {});
   updateStats(); updateShopUI(); saveGame();
 }
 
@@ -1325,7 +1570,8 @@ function renderShopSellSection() {
       html += '<div class="sell-row"><span class="sell-name">Health Potion x' + slot.count + '</span><button class="mini-btn sell" onclick="sellBagSlot(' + i + ');updateShopUI()">Sell 1 (' + price + 'g)</button></div>';
     } else {
       const item = ITEMS[slot.key];
-      html += '<div class="sell-row"><span class="sell-name">' + item.name + ' (' + item.statText + ')</span><button class="mini-btn sell" onclick="sellBagSlot(' + i + ');updateShopUI()">Sell (' + price + 'g)</button></div>';
+      const rarityColor = getRarityColor(slot.rarity || RARITY_COMMON);
+      html += '<div class="sell-row"><span class="sell-name"><span class="item-name ' + rarityColor + '">' + item.name + '</span> (' + item.statText + ')</span><button class="mini-btn sell" onclick="sellBagSlot(' + i + ');updateShopUI()">Sell (' + price + 'g)</button></div>';
     }
   }
   if (!hasItems) html += '<div style="color:#666;padding:6px 0;font-style:italic;font-size:0.85rem;">No items to sell.</div>';
@@ -1371,16 +1617,31 @@ function updateStats() {
   document.getElementById('hp-text').textContent = player.hp + ' / ' + player.maxHp + ' HP';
 
   const btnPower = document.getElementById('btn-power');
+  const btnCleave = document.getElementById('btn-cleave');
   const btnPotion = document.getElementById('btn-potion');
   btnPotion.textContent = 'Use Potion (x' + totalPotions + ')';
   btnPotion.style.display = totalPotions > 0 ? '' : 'none';
 
-  if (player.level >= POWER_STRIKE_LEVEL) {
+  if (player.level >= POWER_STRIKE_LEVEL && !player.skillChoice) {
     btnPower.style.display = '';
     btnPower.textContent = player.powerStrikeCooldown > 0 ? 'Power Strike (' + player.powerStrikeCooldown + ' turns)' : 'Skill: Power Strike';
   } else {
     btnPower.style.display = 'none';
   }
+
+  if (player.skillChoice === 'cleave') {
+    btnCleave.style.display = '';
+    btnCleave.textContent = 'Skill: Cleave';
+  } else {
+    btnCleave.style.display = 'none';
+  }
+
+  if (player.skillChoice === 'parry') {
+    document.getElementById('btn-guard').textContent = 'Guard → Parry';
+  } else {
+    document.getElementById('btn-guard').textContent = 'Skill: Guard';
+  }
+
   updateShopUI();
   renderCamp();
 }
@@ -1409,7 +1670,7 @@ function updateTowerUI() {
     status.textContent = 'Ready to ascend.';
   } else if (tower.phase === 'combat') {
     floorSubtitle.textContent = 'Battle ' + (tower.currentIndex + 1) + ' of ' + tower.floorPlan.length;
-    status.innerHTML = monster.name ? '<span class="monster-health">Rank ' + monster.rank + ': <span class="bar">' + monsterHealthText() + '</span></span>' : 'Combat in progress.';
+    status.innerHTML = monsters.length > 0 ? '<span class="monster-health">Rank ' + monsters[0].rank + ': <span class="bar">' + monsterHealthText() + '</span></span>' : 'Combat in progress.';
   } else if (tower.phase === 'cleared') {
     floorSubtitle.textContent = 'Floor cleared.';
     status.textContent = 'Choose Rest or Push Deeper.';
@@ -1435,7 +1696,8 @@ function disableButtons(resolving) {
   document.getElementById('btn-slash').disabled = resolving || !inCombat;
   document.getElementById('btn-guard').disabled = resolving || !inCombat;
   document.getElementById('btn-potion').disabled = resolving || !inCombat || getTotalPotions() <= 0 || player.hp >= player.maxHp;
-  document.getElementById('btn-power').disabled = resolving || !inCombat || player.powerStrikeCooldown > 0 || player.level < POWER_STRIKE_LEVEL;
+  document.getElementById('btn-power').disabled = resolving || !inCombat || player.powerStrikeCooldown > 0 || player.level < POWER_STRIKE_LEVEL || player.skillChoice;
+  document.getElementById('btn-cleave').disabled = resolving || !inCombat || player.skillChoice !== 'cleave';
   document.getElementById('btn-ascend').disabled = resolving || tower.phase !== 'ready' || tower.moreComing;
   document.getElementById('btn-rest').disabled = resolving || (tower.phase !== 'cleared' && tower.phase !== 'complete') || player.hp >= player.maxHp;
   document.getElementById('btn-push').disabled = resolving || tower.phase !== 'cleared' || tower.floor >= MAX_FLOOR;
@@ -1448,72 +1710,131 @@ function disableButtons(resolving) {
 }
 
 /* ── Combat ────────────────────────────────────────── */
-function playerDamageToMonster(multiplier) {
-  return Math.max(1, Math.round(getTotalAtk() * multiplier - monster.def / 2));
+function playerDamageToMonster(multiplier, monsterIndex) {
+  if (monsterIndex < 0 || monsterIndex >= monsters.length) return 0;
+  const m = monsters[monsterIndex];
+  let dmg = Math.max(1, Math.round(getTotalAtk() * multiplier - m.def / 2));
+  if (m.diveDef < 1) dmg = Math.max(1, Math.round(getTotalAtk() * multiplier - (m.def / 2) * m.diveDef));
+  if (m.immunePhysical) return 0;
+  return dmg;
 }
-function monsterDamageToPlayer() {
-  let dmg = Math.max(1, Math.round(monster.atk - getTotalDef() / 2));
+
+function monsterDamageToPlayer(monsterIndex) {
+  if (monsterIndex < 0 || monsterIndex >= monsters.length) return 0;
+  const m = monsters[monsterIndex];
+  let atk = m.atk;
+  if (m.enraged) atk = Math.round(atk * 1.5);
+  let dmg = Math.max(1, Math.round(atk - getTotalDef() / 2));
   if (player.guardActive) dmg = Math.max(1, Math.round(dmg * 0.7));
   return dmg;
 }
 
-function applyPlayerDamage(dmg, skillName, isCrit) {
-  monster.hp -= dmg;
+function applyPlayerDamage(dmg, skillName, isCrit, targets) {
+  targets = targets || [0];
+  let killed = false;
+  targets.forEach(idx => {
+    if (idx < 0 || idx >= monsters.length) return;
+    monsters[idx].hp -= dmg;
+    if (monsters[idx].hp <= 0) killed = true;
+  });
   let msg = skillName ? 'You use ' + skillName + ' and deal ' + dmg + ' damage!' : 'You attack and deal ' + dmg + ' damage!';
+  if (targets.length > 1) msg = 'You use ' + skillName + ' and hit ' + targets.length + ' enemies for ' + dmg + ' damage each!';
   if (isCrit) { log('CRITICAL! ' + msg, 'crit'); playSound('crit'); }
   else { log(msg, 'dealt'); playSound('attack'); }
-  if (monster.hp <= 0) { handleMonsterDeath(); return true; }
   updateTowerUI();
-  return false;
+  return killed;
 }
 
 function monsterTurn() {
-  if (monster.hp <= 0) return true;
-  const dmg = monsterDamageToPlayer();
-  const prevHp = player.hp;
-  player.hp -= dmg;
-  if (prevHp > 1 && player.hp <= 0) player.hp = 1;
-  let msg = monster.name + ' attacks and deals ' + dmg + ' damage!';
-  if (player.guardActive) msg += ' (Guarded)';
-  log(msg, 'damage'); playSound('hit');
-  player.guardActive = false;
+  if (monsters.length === 0 || player.hp <= 0) return true;
+  let anyAttacked = false;
+  monsters.forEach((m, idx) => {
+    if (m.petrified) { log(m.name + ' is petrified and cannot act.', 'system'); return; }
+    if (m.fireBreathCounter > 0) {
+      m.fireBreathCounter--;
+    } else if (m.fireBreathe && Math.random() < 0.33) {
+      const dmg = Math.max(1, Math.round(m.atk * 1.5));
+      player.hp -= dmg;
+      log(m.name + ' breathes fire and deals ' + dmg + ' damage! (ignores DEF)', 'damage');
+      playSound('hit');
+      m.fireBreathCounter = 3;
+      anyAttacked = true;
+      return;
+    }
+    const dmg = monsterDamageToPlayer(idx);
+    const prevHp = player.hp;
+    player.hp -= dmg;
+    if (prevHp > 1 && player.hp <= 0) player.hp = 1;
+    let msg = m.name + ' attacks and deals ' + dmg + ' damage!';
+    if (player.guardActive) msg += ' (Guarded)';
+    log(msg, 'damage');
+    playSound('hit');
+    if (player.guardActive && player.skillChoice === 'parry' && player.guardCounterReady) {
+      const counterDmg = Math.max(1, Math.round(getTotalAtk() * 0.5));
+      m.hp -= counterDmg;
+      log(m.name + ' is countered for ' + counterDmg + ' damage!', 'dealt');
+      playSound('attack');
+      player.guardCounterReady = false;
+    }
+    player.guardActive = false;
+    anyAttacked = true;
+  });
+  if (m.enrage && m.hp / m.maxHp < 0.30 && !m.enraged) {
+    m.enraged = true;
+    log(m.name + ' is enraged! ATK +50%!', 'enemy');
+  }
+  if (m.petrify && !m.petrified && Math.random() < m.petrify) {
+    m.petrified = true;
+    player.hp -= Math.max(1, Math.round(m.atk - getTotalDef() / 2));
+    log(player.name + ' is petrified for 1 turn!', 'damage');
+    playSound('hit');
+    m.petrified = false;
+    return true;
+  }
   updateStats(); updateTowerUI();
   if (player.hp <= 0) { handlePlayerDeath(); return false; }
-  return true;
+  return anyAttacked ? true : true;
 }
 
 function endPlayerTurn(usedPowerStrike) {
   if (!usedPowerStrike && player.powerStrikeCooldown > 0) player.powerStrikeCooldown--;
+  player.guardCounterReady = player.skillChoice === 'parry' && player.guardActive;
   updateStats(); updateTowerUI(); disableButtons(false); saveGame();
 }
 
 function doAttack() {
-  if (tower.phase !== 'combat') return;
+  if (tower.phase !== 'combat' || monsters.length === 0) return;
   disableButtons(true);
-  const killed = applyPlayerDamage(playerDamageToMonster(1), null, false);
-  if (killed) endPlayerTurn(false);
-  else setTimeout(() => { const survived = monsterTurn(); if (survived) endPlayerTurn(false); }, 300);
+  const killed = applyPlayerDamage(playerDamageToMonster(1, 0), null, false, [0]);
+  if (killed) {
+    handleMonsterDeath(0);
+    if (monsters.length === 0) { endPlayerTurn(false); return; }
+  }
+  setTimeout(() => { const survived = monsterTurn(); if (survived) endPlayerTurn(false); }, 300);
 }
 
 function doSlash() {
-  if (tower.phase !== 'combat') return;
+  if (tower.phase !== 'combat' || monsters.length === 0) return;
   disableButtons(true);
   const crit = Math.random() < getCritChance();
-  const killed = applyPlayerDamage(playerDamageToMonster(crit ? 1.5 : 1), 'Slash', crit);
-  if (killed) endPlayerTurn(false);
-  else setTimeout(() => { const survived = monsterTurn(); if (survived) endPlayerTurn(false); }, 300);
+  const killed = applyPlayerDamage(playerDamageToMonster(crit ? 1.5 : 1, 0), 'Slash', crit, [0]);
+  if (killed) {
+    handleMonsterDeath(0);
+    if (monsters.length === 0) { endPlayerTurn(false); return; }
+  }
+  setTimeout(() => { const survived = monsterTurn(); if (survived) endPlayerTurn(false); }, 300);
 }
 
 function doGuard() {
-  if (tower.phase !== 'combat') return;
+  if (tower.phase !== 'combat' || monsters.length === 0) return;
   disableButtons(true);
   player.guardActive = true;
-  log('You raise your guard! Incoming damage reduced by 30% next turn.', 'skill');
+  log('You raise your guard! Incoming damage reduced by 30% next turn.' + (player.skillChoice === 'parry' ? ' Ready to counter.' : ''), 'skill');
   setTimeout(() => { const survived = monsterTurn(); if (survived) endPlayerTurn(false); }, 300);
 }
 
 function doPotion() {
-  if (tower.phase !== 'combat') return;
+  if (tower.phase !== 'combat' || monsters.length === 0) return;
   if (getTotalPotions() <= 0 || player.hp >= player.maxHp) return;
   disableButtons(true);
   removeFirstPotion();
@@ -1525,13 +1846,39 @@ function doPotion() {
 }
 
 function doPowerStrike() {
-  if (tower.phase !== 'combat') return;
+  if (tower.phase !== 'combat' || monsters.length === 0) return;
   if (player.level < POWER_STRIKE_LEVEL || player.powerStrikeCooldown > 0) return;
   disableButtons(true);
   player.powerStrikeCooldown = POWER_STRIKE_COOLDOWN;
-  const killed = applyPlayerDamage(playerDamageToMonster(1.5), 'Power Strike', false);
-  if (killed) endPlayerTurn(true);
-  else setTimeout(() => { const survived = monsterTurn(); if (survived) endPlayerTurn(true); }, 300);
+  const killed = applyPlayerDamage(playerDamageToMonster(1.5, 0), 'Power Strike', false, [0]);
+  if (killed) {
+    handleMonsterDeath(0);
+    if (monsters.length === 0) { endPlayerTurn(true); return; }
+  }
+  setTimeout(() => { const survived = monsterTurn(); if (survived) endPlayerTurn(true); }, 300);
+}
+
+function doCleave() {
+  if (tower.phase !== 'combat' || monsters.length === 0 || player.skillChoice !== 'cleave') return;
+  disableButtons(true);
+  let targets = [];
+  if (monsters.length === 1) {
+    const dmg = Math.max(1, Math.round(playerDamageToMonster(1.3, 0)));
+    const killed = applyPlayerDamage(dmg, 'Cleave', false, [0]);
+    if (killed) {
+      handleMonsterDeath(0);
+      if (monsters.length === 0) { endPlayerTurn(false); return; }
+    }
+  } else {
+    targets = [0, 1];
+    const dmg = playerDamageToMonster(1, 0);
+    const killed = applyPlayerDamage(dmg, 'Cleave', false, targets);
+    for (let i = targets.length - 1; i >= 0; i--) {
+      if (monsters[targets[i]].hp <= 0) handleMonsterDeath(targets[i]);
+    }
+    if (monsters.length === 0) { endPlayerTurn(false); return; }
+  }
+  setTimeout(() => { const survived = monsterTurn(); if (survived) endPlayerTurn(false); }, 300);
 }
 
 function doRestart() {
@@ -1542,7 +1889,7 @@ function doRestart() {
     floorPlan: getFloorPlan(1), moreComing: false,
     highestFloorReached: 1, unlockedFloors: [1]
   };
-  monster = emptyMonster();
+  monsters = [];
   document.getElementById('combat-log').innerHTML = '';
   document.getElementById('defeat-overlay').classList.remove('active');
   closeShop(); closeBag();
@@ -1578,6 +1925,7 @@ document.getElementById('btn-slash').addEventListener('click', doSlash);
 document.getElementById('btn-guard').addEventListener('click', doGuard);
 document.getElementById('btn-potion').addEventListener('click', doPotion);
 document.getElementById('btn-power').addEventListener('click', doPowerStrike);
+document.getElementById('btn-cleave').addEventListener('click', doCleave);
 document.getElementById('btn-ascend').addEventListener('click', startFloor);
 document.getElementById('btn-rest').addEventListener('click', restAfterFloor);
 document.getElementById('btn-push').addEventListener('click', pushDeeper);
@@ -1625,6 +1973,7 @@ if (player.hp <= 0) {
   disableButtons(false);
   showCamp('The campfire is warm. Prepare for your next climb.');
 }
+if (pendingSkillChoice) showSkillChoice();
 </script>
 </body>
 </html>

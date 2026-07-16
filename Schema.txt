@@ -1,4 +1,4 @@
-SCHEMA — Tower of Trials RPG Combat Prototype
+SCHEMA — Tower of Trials RPG Combat Prototype (Updated v5)
 ============================================
 
 FILE: rpg_combat.html
@@ -11,8 +11,7 @@ Turn-based text RPG. Player (Swordsman) climbs the Tower of Trials.
 Page load opens Floor Selection after save data loads.
 Player selects an unlocked floor, clicks "Ascend", then fights that floor's monsters in sequence.
 After clearing a non-boss floor, player can Rest, Push Deeper, or Retreat.
-Floors 1-10 are implemented. Floor 10 is a boss-only floor.
-After floor 10, show "More floors coming soon".
+Floors 1-15 are implemented. Floor 15 is a boss-only floor.
 Game state auto-saves to localStorage.
 
 
@@ -24,42 +23,40 @@ Growth per level: ATK +3 | AGI +2 | DEF +2 | INT +0 | VIT +3
 
 HP = VIT (maxHp recalculated from VIT; HP capped at maxHp)
 
-
---- MONSTERS ---
-
-Goblin (Rank H)
-  HP 30 | ATK 8 | DEF 3 | EXP 5 | Gold 3
-
-Slime (Rank H)
-  HP 40 | ATK 5 | DEF 6 | EXP 5 | Gold 2
-  Splits on death → Mini-Slime
-
-Mini-Slime (Rank H)
-  HP 20 | ATK 5 | DEF 6 | EXP 0 | Gold 0
-  No drops, no split
-
-Wolf (Rank G)
-  HP 60 | ATK 14 | DEF 4 | EXP 20 | Gold 12
-
-Orc (Rank G)
-  HP 80 | ATK 12 | DEF 7 | EXP 20 | Gold 15
-
-Ogre (Rank F)
-  HP 150 | ATK 18 | DEF 10 | EXP 80 | Gold 50
-  Floor 5 boss
-
-Giant Spider (Rank F)
-  HP 120 | ATK 22 | DEF 8 | EXP 45 | Gold 30
-
-Skeleton Knight (Rank E)
-  HP 180 | ATK 28 | DEF 14 | EXP 60 | Gold 40
-
-Minotaur (Rank E)
-  HP 280 | ATK 35 | DEF 18 | EXP 150 | Gold 100
-  Floor 10 boss
+Level 30 Skill Choice (permanent):
+  A: Cleave — Hit 2 enemies (or 1.3x damage to single). Button replaces Power Strike when chosen.
+  B: Parry — Guard + auto-counter for 50% ATK on next enemy attack. Guard label changes to "Guard → Parry".
 
 
---- FLOOR COMPOSITION ---
+--- MONSTERS (EXPANDED) ---
+
+Rank H (Floors 1-2):
+Goblin: HP 30 | ATK 8 | DEF 3 | EXP 5 | Gold 3
+Slime: HP 40 | ATK 5 | DEF 6 | EXP 5 | Gold 2, splits on death → Mini-Slime
+Mini-Slime: HP 20 | ATK 5 | DEF 6 | EXP 0 | Gold 0, no drops/splits
+
+Rank G (Floors 3-4):
+Wolf: HP 60 | ATK 14 | DEF 4 | EXP 20 | Gold 12
+Orc: HP 80 | ATK 12 | DEF 7 | EXP 20 | Gold 15
+
+Rank F (Floors 5-6):
+Ogre: HP 150 | ATK 18 | DEF 10 | EXP 80 | Gold 50, boss
+Giant Spider: HP 120 | ATK 22 | DEF 8 | EXP 45 | Gold 30
+
+Rank E (Floors 7-12):
+Skeleton Knight: HP 180 | ATK 28 | DEF 14 | EXP 60 | Gold 40
+Minotaur: HP 280 | ATK 35 | DEF 18 | EXP 150 | Gold 100, Floor 10 boss
+Wraith: HP 200 | ATK 38 | DEF 10 | EXP 300 | Gold 55, immune to physical attacks
+Griffin: HP 260 | ATK 33 | DEF 14 | EXP 300 | Gold 50, dive attack ignores 50% DEF
+
+Rank D (Floors 13-15):
+Ogre Lord: HP 500 | ATK 60 | DEF 28 | EXP 1000 | Gold 120, enrage at <30% HP (+50% ATK)
+Basilisk: HP 420 | ATK 55 | DEF 30 | EXP 1000 | Gold 110, 15% petrify chance (skip turn)
+Lesser Wyvern: HP 480 | ATK 58 | DEF 22 | EXP 1000 | Gold 130, AoE fire breath every 3 turns (1.5x ATK, ignores DEF)
+Chimera: HP 1000 | ATK 100 | DEF 42 | EXP 4000 | Gold 300, Floor 15 boss, multi-attack (random fire/poison/physical)
+
+
+--- FLOOR COMPOSITION (EXPANDED) ---
 
 Floor 1:  Goblin, Slime
 Floor 2:  Slime, Goblin, Goblin
@@ -71,6 +68,19 @@ Floor 7:  Giant Spider, Skeleton Knight, Giant Spider
 Floor 8:  Skeleton Knight, Skeleton Knight, Ogre
 Floor 9:  Skeleton Knight, Giant Spider, Skeleton Knight, Ogre
 Floor 10: Minotaur (boss)
+Floor 11: Wraith, Griffin, Minotaur
+Floor 12: Griffin, Wraith, Griffin
+Floor 13: Ogre Lord, Basilisk, Lesser Wyvern
+Floor 14: Basilisk, Lesser Wyvern, Ogre Lord
+Floor 15: Chimera (boss)
+
+
+--- MULTI-ENEMY COMBAT ---
+
+Non-boss floors have 30% chance to spawn 2 identical monsters simultaneously.
+Both monsters attack on their turn.
+Cleave skill targets 2 enemies (if present), or single with 1.3x damage.
+Each monster maintains separate HP, status (petrified, enraged, etc.).
 
 
 --- FLOOR SELECTION ---
@@ -92,7 +102,47 @@ Selection labels:
   Floor 8:    E-rank, very hard — recommended level 8+
   Floor 9:    E-rank gauntlet — recommended level 9+
   Floor 10:   E-rank Boss Minotaur — recommended level 10+
-  Floor 11+:  Coming soon
+  Floor 11-12: E-rank, deadly — recommended level 15+
+  Floor 13-14: D-rank, infernal — recommended level 20+
+  Floor 15:    D-rank Boss Chimera — recommended level 25+
+
+
+--- LEVEL 30 SKILL BRANCH ---
+
+At level 30, player gets one-time choice (persisted in save):
+
+A: Cleave (Swordsman exclusive skill)
+  - Hit 2 enemies (if available, both take full damage)
+  - If single enemy: 1.3x multiplier
+  - Button replaces Power Strike in action bar
+  - Available at player.skillChoice === 'cleave'
+
+B: Parry (Guard enhancement)
+  - Passive: After using Guard, next enemy attack is countered
+  - Counter damage: 50% ATK (in addition to reduced Guard damage)
+  - Mechanic: Guard sets guardCounterReady = true; counter triggers on next monsterTurn
+  - Works only on immediate next attack after Guard turn
+  - Guard label changes to "Guard → Parry"
+
+Choice modal blocks game until selection made. Cannot respec.
+
+
+--- RARITY SYSTEM ---
+
+Each item has rarity tier (common, uncommon, rare):
+  - Common (70%): white text, base stats
+  - Uncommon (20%): green text, +10% to one random stat
+  - Rare (10%): blue text, +20% to one stat OR +10% to two stats
+
+Shop items: always Common.
+Drops: random rarity (generated on drop).
+Storage: item.rarity + item.bonus = { atkBonus, defBonus, agiBonus, critBonus }
+Recalculated on load from stored rarity tier.
+
+Rarity colors in UI:
+  .item-name.common { color: #fff; }
+  .item-name.uncommon { color: #2ecc71; }
+  .item-name.rare { color: #3498db; }
 
 
 --- TOWER FLOW ---
@@ -105,22 +155,23 @@ Ready:
   Player can shop, manage equipment, retreat, or click "Ascend".
 
 Combat:
-  Player fights each monster in floor order.
-  Current monster and floor queue persist in save data.
-  Slime split must be cleared before the next queued monster appears.
+  Player fights each floor's monsters in sequence.
+  Multiple monsters can be present (30% chance per floor).
+  Current monsters and floor queue persist in save data.
+  Slime split spawns Mini-Slime, must clear before next queued monster.
 
 Cleared:
   Player can Rest, Push Deeper, or Retreat.
 
 Complete:
-  After floor 10, show "More floors coming soon".
-  Rest and Retreat remain available outside combat.
+  After floor 15, show "More floors coming soon".
+  Rest and Retreat remain available.
 
 Retreat:
   Available outside active combat.
   Heals player to full HP.
   Resets current floor progress.
-  Saves level, EXP, gold, bag contents, gear, and unlocks.
+  Saves level, EXP, gold, bag contents, gear, unlocks, skill choice.
   Returns to Floor Selection.
 
 
@@ -130,14 +181,16 @@ Formula: EXP needed = 10 × (Level ^ 2.2)
 Round to nearest integer.
 
 On level up: stats increase, HP/MP fully restored, overflow EXP carries over.
+At level 30 (if skill not chosen): pause and show skill choice modal.
 
 
 --- COMBAT TURN ORDER ---
 
 1. Player picks action → resolves immediately
-2. If monster alive → monster attacks
-3. If monster dies → award EXP/gold, try drops, level up, handle gimmick, advance queue
-4. Cooldowns tick down at end of player turn (only on non-Power-Strike turns)
+2. If monster alive → monster attacks (if not petrified)
+3. Monster special effects (enrage, petrify, fire breath counter)
+4. If monster dies → award EXP/gold, try drops, level up, handle gimmick, advance queue
+5. Cooldowns tick down at end of player turn (only on non-Power-Strike turns)
 
 Buttons disabled during resolution to prevent double-clicks.
 
@@ -147,21 +200,31 @@ Buttons disabled during resolution to prevent double-clicks.
 Player damage = (Total ATK × multiplier) − (Monster DEF / 2)
 Minimum damage = 1
 
-Total ATK = base ATK + all equipment ATK bonuses
+Total ATK = base ATK + all equipment ATK bonuses (including rarity bonus)
 
 Multipliers:
 - Attack:       ×1.0
 - Slash:        ×1.0 (crit chance → ×1.5)
 - Power Strike: ×1.5 (unlock Lv 10, cooldown 3 turns)
+- Cleave (single): ×1.3
+- Cleave (multi):  ×1.0 per enemy
 
 Monster damage = Monster ATK − (Total Player DEF / 2)
+- If Ogre Lord enraged: +50% ATK
 Minimum damage = 1
 
-Total Player DEF = base DEF + all equipment DEF bonuses
+Total Player DEF = base DEF + all equipment DEF bonuses (including rarity bonus)
 
 Guard: reduces incoming damage by 30% (×0.7), min 1.
+Parry: After Guard, counter for 50% ATK damage (in addition to reduced damage).
 
 Crit chance = 10% base + equipment crit bonuses.
+
+Special damage:
+- Griffin dive: ignores 50% DEF (diveDef = 0.5)
+- Wraith: immune to physical (only magic-type skills or counter damage works)
+- Lesser Wyvern fire breath: 1.5x ATK, ignores DEF, every 3 turns
+- Basilisk petrify: 15% chance, skips player's next turn
 
 
 --- GOLD / SHOP ---
@@ -176,6 +239,8 @@ Shop items (buy):
   Lucky Charm:     50 gold
   Leather Armor:   50 gold
   Iron Sword:      80 gold
+
+All shop items sold as Common rarity.
 
 Shop sell section:
   Lists bag contents with individual sell buttons.
@@ -226,18 +291,18 @@ Max potion stack: 10 per slot
 
 Bag holds any mix of:
   - Health Potions (stackable up to 10)
-  - Gear items (1 per slot, non-stackable)
+  - Gear items (1 per slot, non-stackable, with rarity/bonus metadata)
 
 Bag UI:
   Shows 5 slots with contents
   Potions: show count, sell button, drop button
-  Gear: show name, stat text, equip button, sell button, drop button
+  Gear: show name (colored by rarity), stat text, equip button, sell button, drop button
   Equipped section below shows current gear per slot with unequip button
   "Sell All" button sells entire bag for gold
 
 Bag functions:
   addPotionToBag()  — stacks if possible, else fills empty slot
-  addGearToBag()    — fills first empty slot
+  addGearToBag()    — fills first empty slot (with rarity/bonus)
   removeFirstPotion() — removes one potion from first stack found
   bagIsFull()       — true if no empty slots
 
@@ -251,7 +316,7 @@ Slots:
   Boots
   Accessory
 
-Items:
+Items (base):
   Weapon:
     Iron Sword:     +5 ATK
     Steel Sword:    +8 ATK
@@ -273,29 +338,37 @@ Items:
     Warrior's Ring: +2 ATK, +1 DEF
     Guardian Amulet:+3 DEF, +3% crit
 
-Drops:
-  Floors 1-4:
-    Leather Armor:   5% chance
-    Leather Cap:     8% chance
-    Leather Boots:   8% chance
-    Lucky Charm:     5% chance (floors 3-4 only)
+Rarity Bonuses:
+  Each item can have rarity-based stat bonus (recalculated on load).
+  Stored as { rarity, bonus: { atkBonus, defBonus, agiBonus, critBonus } }.
 
-  Floors 6-9:
-    Iron Sword:      5% chance
-    Chainmail:       5% chance
-    Iron Helm:       8% chance
-    Iron Greaves:    8% chance
-    Warrior's Ring:  5% chance
+Drops (Floors 1-4):
+  Leather Armor:   5% chance
+  Leather Cap:     8% chance
+  Leather Boots:   8% chance
+  Lucky Charm:     5% chance (floors 3-4 only)
 
-  Boss guaranteed drops:
-    Ogre (floor 5):     Chainmail, Iron Helm, Iron Greaves, Warrior's Ring
-    Minotaur (floor 10): Steel Sword, Guardian Amulet
+Drops (Floors 6-9):
+  Iron Sword:      5% chance
+  Chainmail:       5% chance
+  Iron Helm:       8% chance
+  Iron Greaves:    8% chance
+  Warrior's Ring:  5% chance
+
+Drops (Floors 11-14):
+  Steel Sword:     5% chance
+  Guardian Amulet: 8% chance
+
+Boss drops (guaranteed):
+  Ogre (floor 5):     Chainmail, Iron Helm, Iron Greaves, Warrior's Ring
+  Minotaur (floor 10): Steel Sword, Guardian Amulet
+  Chimera (floor 15):  Steel Sword, Guardian Amulet
 
 Drop handling:
-  Auto-equip if matching slot is empty
-  If slot occupied, show Yes/No equipment prompt
-  Yes → equips new item, old item moved to bag (or lost if bag full)
-  No → item added to bag (or left behind if bag full)
+  Auto-equip if matching slot is empty.
+  If slot occupied, show Yes/No equipment prompt.
+  Yes → equips new item, old item moved to bag (or lost if bag full).
+  No → item added to bag (or left behind if bag full).
 
 
 --- COOLDOWN SYSTEM ---
@@ -304,6 +377,9 @@ Power Strike: 3 turn cooldown.
 After use, cannot use for next 3 player turns.
 Cooldown decrements at end of each NON-Power-Strike player turn.
 Button shows remaining turns when disabled.
+
+Parry Counter Ready: Set after Guard turn, triggers on next monsterTurn (automatic).
+Then resets. Only works on immediate next attack.
 
 
 --- DEATH / RESTART ---
@@ -318,10 +394,10 @@ On death:
   Display gold lost
   Two buttons: "Return to Camp" (keeps progress, returns to Camp)
                "New Game" (full reset)
-  Retain level, EXP, equipment, bag, and unlocks
+  Retain level, EXP, equipment, bag, unlocks, and skill choice
 
 Restart (New Game):
-  Resets everything to Lv 1, floor 1, starter potion, no gear, no gold, clears log.
+  Resets everything to Lv 1, floor 1, starter potion, no gear, no gold, no skill choice, clears log.
   Overwrites saved game with fresh state.
 
 
@@ -329,7 +405,7 @@ Restart (New Game):
 
 Storage: localStorage
 Key: swordsmanRpgSave
-Version: 4
+Version: 5
 
 Auto-save triggers:
   New game initialization
@@ -339,16 +415,22 @@ Auto-save triggers:
   Equip / Unequip / Drop / Sell
   Death penalty
   Restart
+  Skill choice selection
 
 Saved player state:
   Level, EXP, base stats, HP/max HP, MP, gold
-  Power Strike cooldown, guard active flag
+  Power Strike cooldown, guard active flag, guard counter ready flag
   Equipment (5 slot keys)
-  Bag (5 slots with type + count/key)
+  Equipment rarity (5 slot keys for rarity tier)
+  Bag (5 slots with type + count/key + rarity + bonus)
+  Skill choice (cleave/parry/null)
 
-Saved combat state:
+Saved monster state (array):
+  For each monster in combat:
   Current monster template key, name, rank, HP/max HP, ATK, DEF
-  EXP reward, gold reward, flags (splits, isMini, isBoss)
+  EXP reward, gold reward
+  Flags (splits, isMini, isBoss, immunePhysical, diveDef, enrage, enraged, petrify, petrified, fireBreathe, fireBreathCounter, multiAttack)
+  Rarity, rarity bonus data
 
 Saved tower state:
   Current floor
@@ -362,8 +444,8 @@ Saved tower state:
 Load behavior:
   On page open, load save first
   Then show the Camp dashboard
-  Older v3 saves are migrated to v4 bag format
-  v2 saves are rejected
+  v3 saves migrated to v4 bag format + v5 rarity format
+  v2 saves rejected
 
 
 --- WEB AUDIO SOUND ENGINE ---
@@ -384,40 +466,49 @@ AudioContext resumes on first sound play if suspended.
 --- UI LAYOUT ---
 
 Top center: tower floor indicator and status subtitle
-Left panel (280px): player HP bar, equipped gear summary, stats, EXP progress bar, gold, potion count
-Right panel: floor preview, monster HP text bar during combat, current floor status, scrolling combat log
+Left panel (280px): player HP bar, equipped gear summary (colored by rarity), stats, EXP progress bar, gold, potion count
+Right panel: floor preview, monsters HP text bars during combat, current floor status, scrolling combat log
 Bottom bar: combat buttons, Ascend, Rest, Push Deeper, Retreat, Shop, Bag
 
 Combat feedback:
   HP bar: red fill, shows current/max HP text
   EXP bar: yellow fill under EXP / Next Lv
-  Monster health: text bar, e.g. "Goblin [████░░░░] 12/30 HP"
+  Monster health: text bars (one per active monster), e.g. "Goblin x2 [████░░░░] 12/30 HP | [██████░░] 28/30 HP"
   Power Strike cooldown: button shows remaining turns
-  Gear summary: shows each equipped slot and stat bonus
+  Cleave availability: button only visible if skillChoice === 'cleave'
+  Parry status: Guard button label shows "Guard → Parry" if skillChoice === 'parry'
+  Gear summary: shows each equipped slot and stat bonus (with rarity color)
 
 Floor Selection:
   Central overlay with large floor buttons
   Locked floors are disabled
-  Floor 11+ shows "Coming soon"
+  Floor 11+ with recommended levels
   Opened from the Camp "Enter Tower" button
 
 Camp Dashboard:
   Full-screen peaceful hub with dark textured background and glowing title
   Shows level, current/max HP, total ATK, total DEF, gold, potions,
-  highest floor reached, and all 5 equipment slots
+  highest floor reached, and all 5 equipment slots (with rarity colors)
   Actions: Enter Tower, Shop, Bag, Rest at Campfire
   Campfire rest restores HP and MP to full with no cost
-  Shown after load, retreat, death return, new game, and clearing floor 10
+  Shown after load, retreat, death return, new game, and clearing floor 15
   Shop and Bag open as existing overlays above the Camp
+
+Skill Choice Modal:
+  Shown at level 30 when skill not yet chosen
+  Two options: A: Cleave (description) | B: Parry (description)
+  Modal blocks all other input until selection made
+  Choice persisted in save
 
 Shop:
   Modal overlay
   Shows item list, costs, buy buttons, current gold
-  Sell section lists bag contents with sell buttons
+  Sell section lists bag contents with sell buttons (items colored by rarity)
 
 Bag:
   Modal overlay
   5 slots, equipped section, sell-all button
+  Gear items colored by rarity
 
 Loot Prompt:
   Modal overlay with Yes/No buttons for occupied-slot equipment drops
@@ -435,10 +526,15 @@ log-damage    → red (#e74c3c)      — damage taken by player
 log-dealt     → yellow (#f1c40f)   — damage dealt by player
 log-heal      → green (#2ecc71)    — healing, potions
 log-levelup   → cyan (#00e5ff)     — level up, skill unlock
-log-skill     → blue (#3498db)     — skill use (Guard)
+log-skill     → blue (#3498db)     — skill use (Guard, Parry, Cleave)
 log-enemy     → salmon (#f87264)   — enemy appearance / action
 log-system    → gray (#bdc3c7)     — system messages
 log-crit      → bold yellow (#ffb300) — critical hits
 log-loot      → gold (#ffd700)     — equipment drops
 log-split     → purple (#9b59b6)   — slime split events
 log-gold      → gold (#ffd700)     — gold gains/shop
+
+Rarity text colors (items):
+  .item-name.common { color: #fff; }
+  .item-name.uncommon { color: #2ecc71; }
+  .item-name.rare { color: #3498db; }
