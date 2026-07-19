@@ -477,6 +477,7 @@ const RARITY_RARE = 'rare';
 const RARITY_EPIC = 'epic';
 const RARITY_RANK = { common: 0, uncommon: 1, rare: 2, epic: 3 };
 const MULTI_ENEMY_CHANCE = 0.30;
+const MINI_BOSS_MULTI_CHANCE = 0.05;
 
 const MONSTER_TEMPLATES = {
   goblin: { name: 'Goblin', rank: 'H', hp: 30, atk: 8, def: 3, exp: 5, gold: 3 },
@@ -489,9 +490,9 @@ const MONSTER_TEMPLATES = {
   minotaur: { name: 'Minotaur', rank: 'E', hp: 280, atk: 35, def: 18, exp: 150, gold: 100, isBoss: true },
   wraith: { name: 'Wraith', rank: 'E', hp: 200, atk: 38, def: 10, exp: 300, gold: 55, immunePhysical: true },
   griffin: { name: 'Griffin', rank: 'E', hp: 260, atk: 33, def: 14, exp: 300, gold: 50, diveDef: 0.5 },
-  ogreLord: { name: 'Ogre Lord', rank: 'D', hp: 500, atk: 60, def: 28, exp: 1000, gold: 120, enrage: true },
-  basilisk: { name: 'Basilisk', rank: 'D', hp: 420, atk: 55, def: 30, exp: 1000, gold: 110, petrify: 0.15 },
-  lesserWyvern: { name: 'Lesser Wyvern', rank: 'D', hp: 480, atk: 58, def: 22, exp: 1000, gold: 130, fireBreathe: true },
+  ogreLord: { name: 'Ogre Lord', rank: 'D', hp: 500, atk: 60, def: 28, exp: 1000, gold: 120, enrage: true, tier: 'miniBoss' },
+  basilisk: { name: 'Basilisk', rank: 'D', hp: 420, atk: 55, def: 30, exp: 1000, gold: 110, petrify: 0.15, tier: 'miniBoss' },
+  lesserWyvern: { name: 'Lesser Wyvern', rank: 'D', hp: 480, atk: 58, def: 22, exp: 1000, gold: 130, fireBreathe: true, tier: 'miniBoss' },
   chimera: { name: 'Chimera', rank: 'D', hp: 1000, atk: 100, def: 42, exp: 4000, gold: 300, isBoss: true, multiAttack: true },
   stoneGolem: { name: 'Stone Golem', rank: 'C', hp: 1200, atk: 80, def: 60, exp: 4000, gold: 200, critImmune: true },
   darkElfAssassin: { name: 'Dark Elf Assassin', rank: 'C', hp: 800, atk: 120, def: 25, exp: 5000, gold: 250, dodge: 0.30, ignoreDef: 0.20 },
@@ -1225,7 +1226,9 @@ function spawnCurrentFloorMonsters() {
   const baseKey = tower.floorPlan[tower.currentIndex];
   if (!baseKey) { clearFloor(); return; }
   loadMonsterFromTemplate(baseKey);
-  if (Math.random() < MULTI_ENEMY_CHANCE && !MONSTER_TEMPLATES[baseKey].isBoss) {
+  const tmpl = MONSTER_TEMPLATES[baseKey];
+  const multiChance = tmpl.tier === 'miniBoss' ? MINI_BOSS_MULTI_CHANCE : MULTI_ENEMY_CHANCE;
+  if (Math.random() < multiChance && !tmpl.isBoss) {
     loadMonsterFromTemplate(baseKey);
     log('Floor ' + tower.floor + ' battle ' + (tower.currentIndex + 1) + '/' + tower.floorPlan.length + ': ' + monsters[0].name + ' x2 appear! (HP ' + monsters[0].hp + ' each)', 'enemy');
   } else {
