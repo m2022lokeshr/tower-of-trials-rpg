@@ -493,13 +493,13 @@ const MONSTER_TEMPLATES = {
   ogreLord: { name: 'Ogre Lord', rank: 'D', hp: 500, atk: 60, def: 28, exp: 1000, gold: 120, enrage: true, tier: 'miniBoss' },
   basilisk: { name: 'Basilisk', rank: 'D', hp: 420, atk: 55, def: 30, exp: 1000, gold: 110, petrify: 0.15, tier: 'miniBoss' },
   lesserWyvern: { name: 'Lesser Wyvern', rank: 'D', hp: 480, atk: 58, def: 22, exp: 1000, gold: 130, fireBreathe: true, tier: 'miniBoss' },
-  chimera: { name: 'Chimera', rank: 'D', hp: 1000, atk: 100, def: 42, exp: 4000, gold: 300, isBoss: true, multiAttack: true },
-  stoneGolem: { name: 'Stone Golem', rank: 'C', hp: 1200, atk: 80, def: 60, exp: 4000, gold: 200, critImmune: true },
-  darkElfAssassin: { name: 'Dark Elf Assassin', rank: 'C', hp: 800, atk: 120, def: 25, exp: 5000, gold: 250, dodge: 0.30, ignoreDef: 0.20 },
-  wyvern: { name: 'Wyvern', rank: 'B', hp: 2000, atk: 170, def: 75, exp: 15000, gold: 600, isBoss: true, fireBreathe: true, ignoreDef: 0.20 },
-  lich: { name: 'Lich', rank: 'B', hp: 1600, atk: 190, def: 50, exp: 15000, gold: 650, summons: 'skeletonKnight' },
-  armoredBehemoth: { name: 'Armored Behemoth', rank: 'B', hp: 2400, atk: 140, def: 100, exp: 15000, gold: 700, isBoss: true, reflect: 0.10 },
-  ancientDragon: { name: 'Ancient Dragon', rank: 'A', hp: 4000, atk: 300, def: 130, exp: 60000, gold: 2000, isBoss: true, dragon: true, fireBreathe: true, ignoreDef: 0.20, multiAttack: true }
+  chimera: { name: 'Chimera', rank: 'D', hp: 800, atk: 100, def: 42, exp: 4000, gold: 300, isBoss: true, multiAttack: true },
+  stoneGolem: { name: 'Stone Golem', rank: 'C', hp: 1000, atk: 80, def: 60, exp: 4000, gold: 200, critImmune: true },
+  darkElfAssassin: { name: 'Dark Elf Assassin', rank: 'C', hp: 700, atk: 120, def: 25, exp: 5000, gold: 250, dodge: 0.30, ignoreDef: 0.20 },
+  wyvern: { name: 'Wyvern', rank: 'B', hp: 1500, atk: 170, def: 75, exp: 15000, gold: 600, isBoss: true, fireBreathe: true, ignoreDef: 0.20 },
+  lich: { name: 'Lich', rank: 'B', hp: 1300, atk: 190, def: 50, exp: 15000, gold: 650, summons: 'skeletonKnight' },
+  armoredBehemoth: { name: 'Armored Behemoth', rank: 'B', hp: 1800, atk: 140, def: 100, exp: 15000, gold: 700, isBoss: true, reflect: 0.10 },
+  ancientDragon: { name: 'Ancient Dragon', rank: 'A', hp: 3000, atk: 300, def: 130, exp: 60000, gold: 2000, isBoss: true, dragon: true, fireBreathe: true, ignoreDef: 0.20, multiAttack: true }
 };
 
 const ITEMS = {
@@ -948,7 +948,7 @@ function levelUp() {
     const oldLevel = player.level;
     player.exp -= needed;
     player.level++;
-    player.atk += 3; player.agi += 2; player.def += 2; player.vit += 3;
+    player.atk += 4; player.agi += 2; player.def += 2; player.vit += 3;
     recalcHp();
     player.hp = player.maxHp; player.mp = 20;
     log('Level up! You are now level ' + player.level + '!', 'levelup');
@@ -1993,7 +1993,7 @@ function monsterDamageToPlayer(monsterIndex) {
   if (m.enraged) atk = Math.round(atk * 1.5);
   let dmg;
   if (m.dragon) {
-    dmg = Math.max(1, Math.round(m.maxHp * 0.20));
+    dmg = Math.max(1, Math.round(m.maxHp * 0.15));
   } else {
     const effectiveDef = getTotalDef();
     dmg = Math.max(1, Math.round(atk * (100 / (100 + effectiveDef))));
