@@ -2,6 +2,17 @@
 
 A turn-based browser RPG where the Swordsman climbs the Tower of Trials.
 
+> **Scope note:** This prototype is a small single-player subset of the larger
+> design vision in [`game_system_design_doc.md`](./game_system_design_doc.md).
+> The doc describes a much bigger multiplayer game (18 classes, ranks H–S,
+> 6 equipment slots, guilds/PvP, etc.). The current build implements only:
+> **1 class (Swordsman), ranks H–D, 15 floors, 5 equipment slots, 3 rarity
+> tiers, and localStorage-only saves.** Known intentional differences from the
+> doc: base VIT is 50 (doc suggests 100), base DEF is 8 (doc suggests 10), and
+> the EXP exponent is `2.2` (the doc's stated `1.8` was flagged as under-scaled
+> and recommends `2.2`–`2.4`). Treat the doc as aspirational reference, not a
+> 1:1 spec for this file.
+
 ## Features (v5 Update)
 
 ### Core Gameplay

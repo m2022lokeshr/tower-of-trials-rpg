@@ -454,6 +454,7 @@ const MAX_POTION_STACK = 10;
 const RARITY_COMMON = 'common';
 const RARITY_UNCOMMON = 'uncommon';
 const RARITY_RARE = 'rare';
+const RARITY_RANK = { common: 0, uncommon: 1, rare: 2 };
 const MULTI_ENEMY_CHANCE = 0.30;
 
 const MONSTER_TEMPLATES = {
@@ -522,9 +523,11 @@ const FLOOR_PLANS = {
 
 /* ── State ─────────────────────────────────────────── */
 let player = {
+  name: 'Swordsman',
   level: 1, atk: 12, agi: 10, def: 8, int: 4, vit: 50, mp: 20,
   exp: 0, gold: 0, hp: 0, maxHp: 0,
   powerStrikeCooldown: 0, guardActive: false, guardCounterReady: false,
+  petrifiedTurns: 0,
   equipment: createEmptySlots(),
   equipmentRarity: createEmptySlots(),
   bag: createEmptyBag(),
@@ -579,6 +582,11 @@ function getRandomRarity() {
   if (r < 0.70) return RARITY_COMMON;
   if (r < 0.90) return RARITY_UNCOMMON;
   return RARITY_RARE;
+}
+
+function rarityDropLabel(rarity, itemName, monsterName) {
+  const label = rarity.charAt(0).toUpperCase() + rarity.slice(1);
+  return label + ' drop! ' + itemName + ' fell from the ' + monsterName + '.';
 }
 
 function generateRarityBonus(rarity, itemKey) {
@@ -1202,7 +1210,7 @@ function handleMonsterDeath(monsterIndex) {
         receiveEquipment('guardianAmulet', true);
       }
       if (defeatedMonster.isBoss && defeatedMonster.name === 'Chimera') {
-        log('Boss loot! The Chimera drops an Ethereal Blade and a Crown of Kings.', 'loot');
+        log('Boss loot! The Chimera drops a Steel Sword and a Guardian Amulet.', 'loot');
         receiveEquipment('steelSword', true);
         receiveEquipment('guardianAmulet', true);
       }
@@ -1224,56 +1232,56 @@ function tryDrops(defeatedMonster) {
   if (tower.floor < 5 && Math.random() < RARE_ARMOR_DROP_CHANCE) {
     const rarity = getRandomRarity();
     const bonus = generateRarityBonus(rarity, 'leatherArmor');
-    log('Rare drop! Leather Armor fell from the ' + defeatedMonster.name + '.', 'loot');
+    log(rarityDropLabel(rarity, 'Leather Armor', defeatedMonster.name), 'loot');
     receiveEquipment('leatherArmor', true, rarity, bonus);
   }
   if (tower.floor < 5 && Math.random() < BASIC_GEAR_DROP_CHANCE) {
     const rarity = getRandomRarity();
     const bonus = generateRarityBonus(rarity, 'leatherCap');
-    log('Equipment drop! Leather Cap fell from the ' + defeatedMonster.name + '.', 'loot');
+    log(rarityDropLabel(rarity, 'Leather Cap', defeatedMonster.name), 'loot');
     receiveEquipment('leatherCap', true, rarity, bonus);
   }
   if (tower.floor < 5 && Math.random() < BASIC_GEAR_DROP_CHANCE) {
     const rarity = getRandomRarity();
     const bonus = generateRarityBonus(rarity, 'leatherBoots');
-    log('Equipment drop! Leather Boots fell from the ' + defeatedMonster.name + '.', 'loot');
+    log(rarityDropLabel(rarity, 'Leather Boots', defeatedMonster.name), 'loot');
     receiveEquipment('leatherBoots', true, rarity, bonus);
   }
   if ((tower.floor === 3 || tower.floor === 4) && Math.random() < ACCESSORY_DROP_CHANCE) {
     const rarity = getRandomRarity();
     const bonus = generateRarityBonus(rarity, 'luckyCharm');
-    log('Rare drop! Lucky Charm fell from the ' + defeatedMonster.name + '.', 'loot');
+    log(rarityDropLabel(rarity, 'Lucky Charm', defeatedMonster.name), 'loot');
     receiveEquipment('luckyCharm', true, rarity, bonus);
   }
   if (tower.floor >= 6 && tower.floor < 10 && !defeatedMonster.isBoss) {
     if (Math.random() < RARE_ARMOR_DROP_CHANCE) {
       const rarity = getRandomRarity();
       const bonus = generateRarityBonus(rarity, 'ironSword');
-      log('Rare drop! Iron Sword fell from the ' + defeatedMonster.name + '.', 'loot');
+      log(rarityDropLabel(rarity, 'Iron Sword', defeatedMonster.name), 'loot');
       receiveEquipment('ironSword', true, rarity, bonus);
     }
     if (Math.random() < RARE_ARMOR_DROP_CHANCE) {
       const rarity = getRandomRarity();
       const bonus = generateRarityBonus(rarity, 'chainmail');
-      log('Rare drop! Chainmail fell from the ' + defeatedMonster.name + '.', 'loot');
+      log(rarityDropLabel(rarity, 'Chainmail', defeatedMonster.name), 'loot');
       receiveEquipment('chainmail', true, rarity, bonus);
     }
     if (Math.random() < BASIC_GEAR_DROP_CHANCE) {
       const rarity = getRandomRarity();
       const bonus = generateRarityBonus(rarity, 'ironHelm');
-      log('Equipment drop! Iron Helm fell from the ' + defeatedMonster.name + '.', 'loot');
+      log(rarityDropLabel(rarity, 'Iron Helm', defeatedMonster.name), 'loot');
       receiveEquipment('ironHelm', true, rarity, bonus);
     }
     if (Math.random() < BASIC_GEAR_DROP_CHANCE) {
       const rarity = getRandomRarity();
       const bonus = generateRarityBonus(rarity, 'ironGreaves');
-      log('Equipment drop! Iron Greaves fell from the ' + defeatedMonster.name + '.', 'loot');
+      log(rarityDropLabel(rarity, 'Iron Greaves', defeatedMonster.name), 'loot');
       receiveEquipment('ironGreaves', true, rarity, bonus);
     }
     if (Math.random() < ACCESSORY_DROP_CHANCE) {
       const rarity = getRandomRarity();
       const bonus = generateRarityBonus(rarity, 'warriorsRing');
-      log("Rare drop! Warrior's Ring fell from the " + defeatedMonster.name + '.', 'loot');
+      log(rarityDropLabel(rarity, "Warrior's Ring", defeatedMonster.name), 'loot');
       receiveEquipment('warriorsRing', true, rarity, bonus);
     }
   }
@@ -1281,13 +1289,13 @@ function tryDrops(defeatedMonster) {
     if (Math.random() < RARE_ARMOR_DROP_CHANCE) {
       const rarity = getRandomRarity();
       const bonus = generateRarityBonus(rarity, 'steelSword');
-      log('Rare drop! Steel Sword fell from the ' + defeatedMonster.name + '.', 'loot');
+      log(rarityDropLabel(rarity, 'Steel Sword', defeatedMonster.name), 'loot');
       receiveEquipment('steelSword', true, rarity, bonus);
     }
     if (Math.random() < BASIC_GEAR_DROP_CHANCE) {
       const rarity = getRandomRarity();
       const bonus = generateRarityBonus(rarity, 'guardianAmulet');
-      log('Rare drop! Guardian Amulet fell from the ' + defeatedMonster.name + '.', 'loot');
+      log(rarityDropLabel(rarity, 'Guardian Amulet', defeatedMonster.name), 'loot');
       receiveEquipment('guardianAmulet', true, rarity, bonus);
     }
   }
@@ -1299,7 +1307,10 @@ function receiveEquipment(itemKey, promptWhenOccupied, rarity, bonus) {
   bonus = bonus || {};
   const item = itemFromKey(itemKey);
   if (!item) return false;
-  if (player.equipment[item.slot] === itemKey || bagHasGear(itemKey)) {
+  const ownedInSlot = player.equipment[item.slot];
+  const ownedSlotRarity = player.equipmentRarity[item.slot] || RARITY_COMMON;
+  const bagHasSameKey = bagHasGear(itemKey);
+  if (ownedInSlot === itemKey && (RARITY_RANK[rarity] || 0) <= (RARITY_RANK[ownedSlotRarity] || 0) && !bagHasSameKey) {
     log('You already have ' + item.name + '.', 'loot');
     return false;
   }
@@ -1527,7 +1538,8 @@ function buyEquipment(itemKey) {
   if (player.gold < cost) {
     log('Not enough gold for ' + item.name + '.', 'system'); return;
   }
-  if (player.equipment[item.slot] === itemKey || bagHasGear(itemKey)) {
+  const ownedSlotRarityB = player.equipmentRarity[item.slot] || RARITY_COMMON;
+  if (player.equipment[item.slot] === itemKey && (RARITY_RANK[ownedSlotRarityB] || 0) >= RARITY_RANK.common && !bagHasGear(itemKey)) {
     log('You already have ' + item.name + '.', 'system'); return;
   }
   if (player.equipment[item.slot] && bagIsFull()) {
@@ -1710,12 +1722,26 @@ function disableButtons(resolving) {
 }
 
 /* ── Combat ────────────────────────────────────────── */
-function playerDamageToMonster(multiplier, monsterIndex) {
+function consumePetrify() {
+  if (player.petrifiedTurns > 0) {
+    player.petrifiedTurns--;
+    log(player.name + ' is petrified and cannot act this turn!', 'damage');
+    disableButtons(true);
+    setTimeout(() => {
+      const survived = monsterTurn();
+      if (survived) endPlayerTurn(false);
+    }, 300);
+    return true;
+  }
+  return false;
+}
+
+function playerDamageToMonster(multiplier, monsterIndex, isMagic) {
   if (monsterIndex < 0 || monsterIndex >= monsters.length) return 0;
   const m = monsters[monsterIndex];
+  if (m.immunePhysical && !isMagic) return 0;
   let dmg = Math.max(1, Math.round(getTotalAtk() * multiplier - m.def / 2));
   if (m.diveDef < 1) dmg = Math.max(1, Math.round(getTotalAtk() * multiplier - (m.def / 2) * m.diveDef));
-  if (m.immunePhysical) return 0;
   return dmg;
 }
 
@@ -1747,7 +1773,6 @@ function applyPlayerDamage(dmg, skillName, isCrit, targets) {
 
 function monsterTurn() {
   if (monsters.length === 0 || player.hp <= 0) return true;
-  let anyAttacked = false;
   monsters.forEach((m, idx) => {
     if (m.petrified) { log(m.name + ' is petrified and cannot act.', 'system'); return; }
     if (m.fireBreathCounter > 0) {
@@ -1758,7 +1783,6 @@ function monsterTurn() {
       log(m.name + ' breathes fire and deals ' + dmg + ' damage! (ignores DEF)', 'damage');
       playSound('hit');
       m.fireBreathCounter = 3;
-      anyAttacked = true;
       return;
     }
     const dmg = monsterDamageToPlayer(idx);
@@ -1777,22 +1801,19 @@ function monsterTurn() {
       player.guardCounterReady = false;
     }
     player.guardActive = false;
-    anyAttacked = true;
     if (m.enrage && m.hp / m.maxHp < 0.30 && !m.enraged) {
       m.enraged = true;
       log(m.name + ' is enraged! ATK +50%!', 'enemy');
     }
     if (m.petrify && !m.petrified && Math.random() < m.petrify) {
-      m.petrified = true;
-      player.hp -= Math.max(1, Math.round(m.atk - getTotalDef() / 2));
-      log(player.name + ' is petrified for 1 turn!', 'damage');
+      player.petrifiedTurns++;
+      log(player.name + ' is petrified and will skip the next turn!', 'damage');
       playSound('hit');
-      m.petrified = false;
     }
   });
   updateStats(); updateTowerUI();
   if (player.hp <= 0) { handlePlayerDeath(); return false; }
-  return anyAttacked ? true : true;
+  return true;
 }
 
 function endPlayerTurn(usedPowerStrike) {
@@ -1802,6 +1823,7 @@ function endPlayerTurn(usedPowerStrike) {
 }
 
 function doAttack() {
+  if (consumePetrify()) return;
   if (tower.phase !== 'combat' || monsters.length === 0) return;
   disableButtons(true);
   const killed = applyPlayerDamage(playerDamageToMonster(1, 0), null, false, [0]);
@@ -1813,6 +1835,7 @@ function doAttack() {
 }
 
 function doSlash() {
+  if (consumePetrify()) return;
   if (tower.phase !== 'combat' || monsters.length === 0) return;
   disableButtons(true);
   const crit = Math.random() < getCritChance();
@@ -1825,6 +1848,7 @@ function doSlash() {
 }
 
 function doGuard() {
+  if (consumePetrify()) return;
   if (tower.phase !== 'combat' || monsters.length === 0) return;
   disableButtons(true);
   player.guardActive = true;
@@ -1833,6 +1857,7 @@ function doGuard() {
 }
 
 function doPotion() {
+  if (consumePetrify()) return;
   if (tower.phase !== 'combat' || monsters.length === 0) return;
   if (getTotalPotions() <= 0 || player.hp >= player.maxHp) return;
   disableButtons(true);
@@ -1845,11 +1870,12 @@ function doPotion() {
 }
 
 function doPowerStrike() {
+  if (consumePetrify()) return;
   if (tower.phase !== 'combat' || monsters.length === 0) return;
   if (player.level < POWER_STRIKE_LEVEL || player.powerStrikeCooldown > 0) return;
   disableButtons(true);
   player.powerStrikeCooldown = POWER_STRIKE_COOLDOWN;
-  const killed = applyPlayerDamage(playerDamageToMonster(1.5, 0), 'Power Strike', false, [0]);
+  const killed = applyPlayerDamage(playerDamageToMonster(1.5, 0, true), 'Power Strike', false, [0]);
   if (killed) {
     handleMonsterDeath(0);
     if (monsters.length === 0) { endPlayerTurn(true); return; }
@@ -1858,6 +1884,7 @@ function doPowerStrike() {
 }
 
 function doCleave() {
+  if (consumePetrify()) return;
   if (tower.phase !== 'combat' || monsters.length === 0 || player.skillChoice !== 'cleave') return;
   disableButtons(true);
   let targets = [];
