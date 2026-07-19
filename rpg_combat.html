@@ -1978,8 +1978,8 @@ function playerDamageToMonster(multiplier, monsterIndex, isMagic) {
     log(m.name + ' is immune to physical attacks! Equip a magic item to damage it.', 'system');
     return 0;
   }
-  let dmg = Math.max(1, Math.round(getTotalAtk() * multiplier - m.def / 2));
-  if (m.diveDef < 1) dmg = Math.max(1, Math.round(getTotalAtk() * multiplier - (m.def / 2) * m.diveDef));
+  const effectiveDef = m.def * (m.diveDef < 1 ? m.diveDef : 1);
+  let dmg = Math.max(1, Math.round(getTotalAtk() * multiplier * (100 / (100 + effectiveDef))));
   return dmg;
 }
 
@@ -1991,10 +1991,10 @@ function monsterDamageToPlayer(monsterIndex) {
   let dmg;
   if (m.dragon) {
     dmg = Math.max(1, Math.round(m.maxHp * 0.20));
-  } else if (m.ignoreDef) {
-    dmg = Math.max(1, Math.round(atk * (1 - m.ignoreDef)));
   } else {
-    dmg = Math.max(1, Math.round(atk - getTotalDef() / 2));
+    const effectiveDef = getTotalDef();
+    dmg = Math.max(1, Math.round(atk * (100 / (100 + effectiveDef))));
+    if (m.ignoreDef) dmg = Math.max(1, Math.round(dmg * (1 - m.ignoreDef)));
   }
   if (player.guardActive) {
     const reduce = player.aegisGuard ? 0.40 : 0.70;
