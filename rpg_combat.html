@@ -372,6 +372,11 @@
       <span>50 gold</span>
       <button class="mini-btn buy" id="buy-charm">Buy</button>
     </div>
+    <div class="shop-row">
+      <div><strong>Spectral Charm</strong><div class="shop-desc">Accessory, magic-aligned. Lets your attacks harm physically-immune foes.</div></div>
+      <span>60 gold</span>
+      <button class="mini-btn buy" id="buy-spectral">Buy</button>
+    </div>
     <div id="shop-sell-section"></div>
     <div id="shop-footer">
       <span>Gold: <strong id="shop-gold">0</strong></span>
@@ -484,6 +489,7 @@ const ITEMS = {
   ironGreaves: { name: 'Iron Greaves', slot: 'boots', atkBonus: 0, defBonus: 1, agiBonus: 3, critBonus: 0, statText: '+3 AGI, +1 DEF' },
   luckyCharm: { name: 'Lucky Charm', slot: 'accessory', atkBonus: 0, defBonus: 0, agiBonus: 0, critBonus: 0.05, statText: '+5% crit' },
   warriorsRing: { name: "Warrior's Ring", slot: 'accessory', atkBonus: 2, defBonus: 1, agiBonus: 0, critBonus: 0, statText: '+2 ATK, +1 DEF' },
+  spectralCharm: { name: 'Spectral Charm', slot: 'accessory', atkBonus: 0, defBonus: 0, agiBonus: 0, critBonus: 0, magic: true, statText: 'Magic-aligned' },
   steelSword: { name: 'Steel Sword', slot: 'weapon', atkBonus: 8, defBonus: 0, agiBonus: 0, critBonus: 0, statText: '+8 ATK' },
   guardianAmulet: { name: 'Guardian Amulet', slot: 'accessory', atkBonus: 0, defBonus: 3, agiBonus: 0, critBonus: 0.03, statText: '+3 DEF, +3% crit' }
 };
@@ -494,13 +500,15 @@ const SHOP_ITEMS = {
   ironSword: { cost: 80 },
   leatherCap: { cost: 30 },
   leatherBoots: { cost: 30 },
-  luckyCharm: { cost: 50 }
+  luckyCharm: { cost: 50 },
+  spectralCharm: { cost: 60 }
 };
 
 const SELL_PRICES = {
   potion: 3, ironSword: 16, leatherArmor: 10, leatherCap: 6,
   ironHelm: 14, leatherBoots: 6, ironGreaves: 14, luckyCharm: 10,
-  warriorsRing: 12, chainmail: 14, steelSword: 20, guardianAmulet: 16
+  warriorsRing: 12, chainmail: 14, steelSword: 20, guardianAmulet: 16,
+  spectralCharm: 12
 };
 
 const FLOOR_PLANS = {
@@ -837,6 +845,13 @@ function getCritChance() {
   }, 0);
 }
 
+function playerHasMagicGear() {
+  return EQUIPMENT_SLOTS.some(slot => {
+    const item = itemFromKey(player.equipment[slot]);
+    return !!(item && item.magic);
+  });
+}
+
 /* ── Player Init ───────────────────────────────────── */
 function initPlayer() {
   player.level = 1; player.atk = 12; player.agi = 10; player.def = 8;
@@ -921,7 +936,7 @@ function renderGearSummary() {
     if (!item) return '<div class="gear-line">Armor: <span class="gear-empty">None</span></div>';
     const rarity = player.equipmentRarity[slot] || RARITY_COMMON;
     const rarityColor = getRarityColor(rarity);
-    const statText = item.statText;
+    const statText = item.statText + (item.magic ? ', Magic' : '');
     return '<div class="gear-line">' + formatSlotLabel(slot) + ': <span class="item-name ' + rarityColor + '">' + item.name + ' (' + statText + ')</span></div>';
   }).join('');
 }
@@ -1298,6 +1313,12 @@ function tryDrops(defeatedMonster) {
       log(rarityDropLabel(rarity, 'Guardian Amulet', defeatedMonster.name), 'loot');
       receiveEquipment('guardianAmulet', true, rarity, bonus);
     }
+    if (Math.random() < ACCESSORY_DROP_CHANCE) {
+      const rarity = getRandomRarity();
+      const bonus = generateRarityBonus(rarity, 'spectralCharm');
+      log(rarityDropLabel(rarity, 'Spectral Charm', defeatedMonster.name), 'loot');
+      receiveEquipment('spectralCharm', true, rarity, bonus);
+    }
   }
 }
 
@@ -1566,6 +1587,7 @@ function updateShopUI() {
   document.getElementById('buy-cap').disabled = player.gold < SHOP_ITEMS.leatherCap.cost;
   document.getElementById('buy-boots').disabled = player.gold < SHOP_ITEMS.leatherBoots.cost;
   document.getElementById('buy-charm').disabled = player.gold < SHOP_ITEMS.luckyCharm.cost;
+  document.getElementById('buy-spectral').disabled = player.gold < SHOP_ITEMS.spectralCharm.cost;
   renderShopSellSection();
 }
 
@@ -1739,7 +1761,10 @@ function consumePetrify() {
 function playerDamageToMonster(multiplier, monsterIndex, isMagic) {
   if (monsterIndex < 0 || monsterIndex >= monsters.length) return 0;
   const m = monsters[monsterIndex];
-  if (m.immunePhysical && !isMagic) return 0;
+  if (m.immunePhysical && !isMagic && !playerHasMagicGear()) {
+    log(m.name + ' is immune to physical attacks! Equip a magic item to damage it.', 'system');
+    return 0;
+  }
   let dmg = Math.max(1, Math.round(getTotalAtk() * multiplier - m.def / 2));
   if (m.diveDef < 1) dmg = Math.max(1, Math.round(getTotalAtk() * multiplier - (m.def / 2) * m.diveDef));
   return dmg;
@@ -1875,7 +1900,7 @@ function doPowerStrike() {
   if (player.level < POWER_STRIKE_LEVEL || player.powerStrikeCooldown > 0) return;
   disableButtons(true);
   player.powerStrikeCooldown = POWER_STRIKE_COOLDOWN;
-  const killed = applyPlayerDamage(playerDamageToMonster(1.5, 0, true), 'Power Strike', false, [0]);
+  const killed = applyPlayerDamage(playerDamageToMonster(1.5, 0), 'Power Strike', false, [0]);
   if (killed) {
     handleMonsterDeath(0);
     if (monsters.length === 0) { endPlayerTurn(true); return; }
@@ -1964,6 +1989,7 @@ document.getElementById('buy-sword').addEventListener('click', () => buyEquipmen
 document.getElementById('buy-cap').addEventListener('click', () => buyEquipment('leatherCap'));
 document.getElementById('buy-boots').addEventListener('click', () => buyEquipment('leatherBoots'));
 document.getElementById('buy-charm').addEventListener('click', () => buyEquipment('luckyCharm'));
+document.getElementById('buy-spectral').addEventListener('click', () => buyEquipment('spectralCharm'));
 document.getElementById('close-shop').addEventListener('click', closeShop);
 document.getElementById('close-bag').addEventListener('click', closeBag);
 document.getElementById('btn-sell-all').addEventListener('click', sellAllBag);
