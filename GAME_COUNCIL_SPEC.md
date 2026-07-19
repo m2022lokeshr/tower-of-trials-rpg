@@ -54,7 +54,7 @@ A solo, text-based, dark-themed tower-climbing RPG played in a single HTML file.
    - Parry path → Riposte (guaranteed counter + stun)
    - Show a skill tree preview on the Camp screen after the choice is available.
 3. **Add a simple "Prestige" or "Ascension" teaser:** After beating floor 30, the player sees a message: "The tower's true depths await in a future update. Your journey is far from over." This sets long-term motivation.
-4. **Introduce "Set Bonuses"** for rare equipment combos (e.g., equipping Dragonscale Plate + Dragon Helm gives +10% fire resist). This rewards collecting specific items.
+4. **Introduce "Set Bonuses"** for rare equipment combos. Phase 4 adds two set pieces that drop from floors 26–30: `Dragonscale Plate` (armor) and `Dragon Helm` (helmet). Equipping both grants +10% fire resist (separate from the +30% stat cap). This rewards collecting specific endgame items.
 5. **Add a basic stats page** (accessible from Camp) showing total monsters killed, total gold earned, deaths, etc. Feeds the player's sense of progression.
 
 **Monster/Balance guidelines:**
@@ -62,6 +62,7 @@ A solo, text-based, dark-themed tower-climbing RPG played in a single HTML file.
 - B-rank monsters: HP ~1600–2400, ATK ~140–200, EXP ~15,000.
 - A-rank dragon: HP 4000, ATK 300, EXP 60,000. This should be a major milestone.
 - Ensure the EXP formula (BaseEXP=10, exponent 2.2) keeps levelling challenging but not insane. Players reaching Lv60 by floor 30 should be possible with some grinding.
+- Before locking Lv60 as reachable by floor 30, run a spreadsheet EXP-yield pass (per §5 EXP formula) across floors 1–30 to confirm players are not walled under-leveled at floor 26+. If the curve is too steep, permit an overlevel-EXP penalty (reduced EXP when player level >> monster rank) as an exception to the exponent-lock rule — spreadsheet-validated first.
 
 **UI Updates:**
 - Skill tree preview in Camp (static image or text tree showing the chosen path).
@@ -102,10 +103,10 @@ A solo, text-based, dark-themed tower-climbing RPG played in a single HTML file.
 
 - **EXP formula:** `EXP needed = 10 × (Level ^ 2.2)`. Rounded to integer. Never change exponent without spreadsheet check across 1–99.
 - **HP:** `HP = VIT`. Base VIT 50, +3 per level. At Lv60, HP ≈ 227. That’s enough for high-end content if armor is decent. Do not increase VIT growth without adjusting monster damage.
-- **Damage formula:** Player dealt = `max(1, Player ATK - Enemy DEF/2)`. Incoming = `max(1, Enemy ATK - Player DEF/2)`. Keep this simple.
+- **Damage formula:** Player dealt = `max(1, Player ATK - Enemy DEF/2)`. Incoming = `max(1, Enemy ATK - Player DEF/2)`. Keep this simple. Monster special-damage effects (Dragon %max-HP, Dark Elf Assassin dodge/DEF-ignore, Wyvern DEF-ignore, Stone Golem crit-immunity, Lich summons) are explicit exceptions to the "keep simple" rule and may be implemented in Phase 4 using the existing `diveDef`/`fireBreathe`/`multiAttack` patterns already in code.
 - **Sell price:** Always 20% of shop buy price. Never increase unless a gold sink is added.
 - **Potion drop:** 10% from non-boss monsters. Bosses have separate loot tables.
-- **Rarity bonuses:** Common (0%), Uncommon (+10% to one random stat), Rare (+20% one or +10% two). Bonuses apply to base item stats. Total bonus per item capped at +30% (so only Rare can reach +20%, Uncommon up to +10%). No Legendary/Mythic until Phase 6+.
+- **Rarity bonuses:** Common (0%), Uncommon (+10% to one random stat), Rare (+20% one or +10% two). Bonuses apply to base item stats. Total additive bonus per item capped at +30% for ATK/DEF/AGI/CRIT stats (only Rare reaches +20%/+10%). **Set-bonus resistances (e.g., fire resist) are tracked separately and not subject to this cap.** No Legendary/Mythic until Phase 6+. **Epic-tier drops are permitted from B-rank (floors 21–25) and A-rank (floors 26–30) monsters in Phase 4** to support the endgame chase. Epic items use the existing rarity-bonus model scaled up (e.g., +35–50% to one/two stats) and a distinct color (purple).
 
 ---
 
@@ -129,6 +130,7 @@ A solo, text-based, dark-themed tower-climbing RPG played in a single HTML file.
 - Inventory limited to 5 slots to avoid hoarding and keep decisions meaningful.
 - Camp screen is the emotional hub; always return there after death/retreat.
 - Lv30/Lv60 choices are permanent; they define character identity.
+- Phase 4 relaxations (verified): Epic drops allowed from B-rank (21–25) and A-rank (26–30) floors; +30% stat cap excludes set-bonus resistances; monster special-damage effects exempt from the "keep simple" rule; set pieces Dragonscale Plate + Dragon Helm added (drop floors 26–30, +10% fire resist); Lv60-by-floor-30 requires an EXP spreadsheet pass with optional overlevel-EXP penalty as a documented exception.
 
 ---
 

@@ -73,12 +73,13 @@
   #exp-bar-inner { height: 100%; width: 0%; background: #f1c40f; transition: width 0.2s; }
   .monster-health { color: #f0f0f0; font-weight: bold; }
   .monster-health .bar { color: #e74c3c; letter-spacing: 1px; }
-  .item-name { color: #2ecc71; font-weight: bold; }
-  .item-name.common { color: #fff; }
-  .item-name.uncommon { color: #2ecc71; }
-  .item-name.rare { color: #3498db; }
-  .item-stat { color: #aaa; font-size: 0.8rem; }
-  .slot-label { color: #aaa; }
+   .item-name { color: #2ecc71; font-weight: bold; }
+   .item-name.common { color: #fff; }
+   .item-name.uncommon { color: #2ecc71; }
+   .item-name.rare { color: #3498db; }
+   .item-name.epic { color: #9b59b6; }
+   .item-stat { color: #aaa; font-size: 0.8rem; }
+   .slot-label { color: #aaa; }
   .mini-btn {
     background: #7f8c8d; color: #fff; border: none;
     padding: 3px 7px; font-family: inherit; font-size: 0.75rem;
@@ -136,13 +137,13 @@
   .action-btn.shop:hover:not(:disabled) { background: #705816; }
   .action-btn.bag { background: #2e6b4f; border-color: #256b4a; }
   .action-btn.bag:hover:not(:disabled) { background: #256b4a; }
-  #defeat-overlay, #shop-overlay, #floor-select-overlay, #loot-overlay, #bag-overlay, #camp-overlay, #skill-choice-overlay {
+  #defeat-overlay, #shop-overlay, #floor-select-overlay, #loot-overlay, #bag-overlay, #camp-overlay, #skill-choice-overlay, #stats-overlay {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(0,0,0,0.85); display: none;
     align-items: center; justify-content: center; z-index: 100;
   }
   #defeat-overlay.active, #shop-overlay.active, #floor-select-overlay.active,
-  #loot-overlay.active, #bag-overlay.active, #camp-overlay.active, #skill-choice-overlay.active { display: flex; }
+  #loot-overlay.active, #bag-overlay.active, #camp-overlay.active, #skill-choice-overlay.active, #stats-overlay.active { display: flex; }
   #camp-overlay {
     background:
       radial-gradient(ellipse at 50% 15%, #2a2436 0%, rgba(30, 25, 39, 0.72) 30%, rgba(8, 8, 11, 0.98) 78%),
@@ -210,12 +211,12 @@
     cursor: pointer; border-radius: 3px; margin: 0 6px;
   }
   #camp-btn:hover { background: #34495e; }
-  #shop-modal, #floor-select-modal, #loot-modal, #bag-modal, #skill-choice-modal {
+  #shop-modal, #floor-select-modal, #loot-modal, #bag-modal, #skill-choice-modal, #stats-modal {
     width: min(540px, calc(100vw - 32px));
     background: #171717; border: 1px solid #444;
     padding: 16px; border-radius: 3px;
   }
-  #shop-modal, #floor-select-modal, #bag-modal { max-height: 82vh; overflow-y: auto; }
+  #shop-modal, #floor-select-modal, #bag-modal, #stats-modal { max-height: 82vh; overflow-y: auto; }
   #shop-modal h2, #floor-select-modal h2, #loot-modal h2, #bag-modal h2, #skill-choice-modal h2 {
     color: #f1c40f; font-size: 1.2rem; margin-bottom: 10px;
   }
@@ -320,6 +321,7 @@
   <button class="action-btn" id="btn-potion">Use Potion</button>
   <button class="action-btn primary" id="btn-power" style="display:none">Skill: Power Strike</button>
   <button class="action-btn primary" id="btn-cleave" style="display:none">Skill: Cleave</button>
+  <button class="action-btn primary" id="btn-ultimate" style="display:none">Ultimate</button>
   <button class="action-btn primary" id="btn-ascend">Ascend</button>
   <button class="action-btn primary" id="btn-rest">Rest</button>
   <button class="action-btn primary" id="btn-push">Push Deeper</button>
@@ -403,6 +405,7 @@
       <button class="camp-action primary" id="camp-enter-tower">Enter Tower</button>
       <button class="camp-action" id="camp-shop">Shop</button>
       <button class="camp-action" id="camp-bag">Bag</button>
+      <button class="camp-action" id="camp-stats">Stats</button>
       <button class="camp-action" id="camp-rest">Rest at Campfire</button>
     </div>
     <div id="camp-message"></div>
@@ -431,6 +434,16 @@
   </div>
 </div>
 
+<div id="stats-overlay">
+  <div id="stats-modal">
+    <h2>Adventure Stats</h2>
+    <div id="stats-content"></div>
+    <div id="stats-footer">
+      <button class="mini-btn" id="close-stats">Close</button>
+    </div>
+  </div>
+</div>
+
 <div id="skill-choice-overlay">
   <div id="skill-choice-modal">
     <h2>Level 30: Choose Your Skill Branch</h2>
@@ -445,12 +458,14 @@ const BASE_EXP = 10;
 const POWER_STRIKE_LEVEL = 10;
 const POWER_STRIKE_COOLDOWN = 3;
 const SKILL_CHOICE_LEVEL = 30;
+const ULTIMATE_SKILL_LEVEL = 60;
 const POTION_HEAL = 30;
 const POTION_DROP_CHANCE = 0.10;
 const RARE_ARMOR_DROP_CHANCE = 0.05;
 const BASIC_GEAR_DROP_CHANCE = 0.08;
 const ACCESSORY_DROP_CHANCE = 0.05;
-const MAX_FLOOR = 15;
+const EPIC_DROP_CHANCE = 0.06;
+const MAX_FLOOR = 30;
 const SAVE_KEY = 'swordsmanRpgSave';
 const SAVE_VERSION = 5;
 const EQUIPMENT_SLOTS = ['weapon', 'armor', 'helmet', 'boots', 'accessory'];
@@ -459,7 +474,8 @@ const MAX_POTION_STACK = 10;
 const RARITY_COMMON = 'common';
 const RARITY_UNCOMMON = 'uncommon';
 const RARITY_RARE = 'rare';
-const RARITY_RANK = { common: 0, uncommon: 1, rare: 2 };
+const RARITY_EPIC = 'epic';
+const RARITY_RANK = { common: 0, uncommon: 1, rare: 2, epic: 3 };
 const MULTI_ENEMY_CHANCE = 0.30;
 
 const MONSTER_TEMPLATES = {
@@ -476,7 +492,13 @@ const MONSTER_TEMPLATES = {
   ogreLord: { name: 'Ogre Lord', rank: 'D', hp: 500, atk: 60, def: 28, exp: 1000, gold: 120, enrage: true },
   basilisk: { name: 'Basilisk', rank: 'D', hp: 420, atk: 55, def: 30, exp: 1000, gold: 110, petrify: 0.15 },
   lesserWyvern: { name: 'Lesser Wyvern', rank: 'D', hp: 480, atk: 58, def: 22, exp: 1000, gold: 130, fireBreathe: true },
-  chimera: { name: 'Chimera', rank: 'D', hp: 1000, atk: 100, def: 42, exp: 4000, gold: 300, isBoss: true, multiAttack: true }
+  chimera: { name: 'Chimera', rank: 'D', hp: 1000, atk: 100, def: 42, exp: 4000, gold: 300, isBoss: true, multiAttack: true },
+  stoneGolem: { name: 'Stone Golem', rank: 'C', hp: 1200, atk: 80, def: 60, exp: 4000, gold: 200, critImmune: true },
+  darkElfAssassin: { name: 'Dark Elf Assassin', rank: 'C', hp: 800, atk: 120, def: 25, exp: 5000, gold: 250, dodge: 0.30, ignoreDef: 0.20 },
+  wyvern: { name: 'Wyvern', rank: 'B', hp: 2000, atk: 170, def: 75, exp: 15000, gold: 600, isBoss: true, fireBreathe: true, ignoreDef: 0.20 },
+  lich: { name: 'Lich', rank: 'B', hp: 1600, atk: 190, def: 50, exp: 15000, gold: 650, summons: 'skeletonKnight' },
+  armoredBehemoth: { name: 'Armored Behemoth', rank: 'B', hp: 2400, atk: 140, def: 100, exp: 15000, gold: 700, isBoss: true, reflect: 0.10 },
+  ancientDragon: { name: 'Ancient Dragon', rank: 'A', hp: 4000, atk: 300, def: 130, exp: 60000, gold: 2000, isBoss: true, dragon: true, fireBreathe: true, ignoreDef: 0.20, multiAttack: true }
 };
 
 const ITEMS = {
@@ -491,7 +513,9 @@ const ITEMS = {
   warriorsRing: { name: "Warrior's Ring", slot: 'accessory', atkBonus: 2, defBonus: 1, agiBonus: 0, critBonus: 0, statText: '+2 ATK, +1 DEF' },
   spectralCharm: { name: 'Spectral Charm', slot: 'accessory', atkBonus: 0, defBonus: 0, agiBonus: 0, critBonus: 0, magic: true, statText: 'Magic-aligned' },
   steelSword: { name: 'Steel Sword', slot: 'weapon', atkBonus: 8, defBonus: 0, agiBonus: 0, critBonus: 0, statText: '+8 ATK' },
-  guardianAmulet: { name: 'Guardian Amulet', slot: 'accessory', atkBonus: 0, defBonus: 3, agiBonus: 0, critBonus: 0.03, statText: '+3 DEF, +3% crit' }
+  guardianAmulet: { name: 'Guardian Amulet', slot: 'accessory', atkBonus: 0, defBonus: 3, agiBonus: 0, critBonus: 0.03, statText: '+3 DEF, +3% crit' },
+  dragonscalePlate: { name: 'Dragonscale Plate', slot: 'armor', atkBonus: 0, defBonus: 12, agiBonus: 0, critBonus: 0, set: 'dragon', statText: '+12 DEF (Dragon Set)' },
+  dragonHelm: { name: 'Dragon Helm', slot: 'helmet', atkBonus: 0, defBonus: 8, agiBonus: 0, critBonus: 0, set: 'dragon', statText: '+8 DEF (Dragon Set)' }
 };
 
 const SHOP_ITEMS = {
@@ -508,7 +532,7 @@ const SELL_PRICES = {
   potion: 3, ironSword: 16, leatherArmor: 10, leatherCap: 6,
   ironHelm: 14, leatherBoots: 6, ironGreaves: 14, luckyCharm: 10,
   warriorsRing: 12, chainmail: 14, steelSword: 20, guardianAmulet: 16,
-  spectralCharm: 12
+  spectralCharm: 12, dragonscalePlate: 24, dragonHelm: 18
 };
 
 const FLOOR_PLANS = {
@@ -526,7 +550,22 @@ const FLOOR_PLANS = {
   12: ['griffin', 'wraith', 'griffin'],
   13: ['ogreLord', 'basilisk', 'lesserWyvern'],
   14: ['basilisk', 'lesserWyvern', 'ogreLord'],
-  15: ['chimera']
+   15: ['chimera'],
+   16: ['stoneGolem', 'darkElfAssassin', 'stoneGolem'],
+   17: ['darkElfAssassin', 'stoneGolem', 'darkElfAssassin'],
+   18: ['stoneGolem', 'darkElfAssassin', 'stoneGolem'],
+   19: ['darkElfAssassin', 'stoneGolem', 'darkElfAssassin'],
+   20: ['stoneGolem', 'darkElfAssassin', 'stoneGolem'],
+   21: ['wyvern', 'lich', 'armoredBehemoth'],
+   22: ['lich', 'wyvern', 'lich'],
+   23: ['armoredBehemoth', 'lich', 'wyvern'],
+   24: ['wyvern', 'armoredBehemoth', 'lich'],
+   25: ['armoredBehemoth', 'wyvern', 'armoredBehemoth'],
+   26: ['ancientDragon', 'wyvern', 'lich'],
+   27: ['lich', 'ancientDragon', 'armoredBehemoth'],
+   28: ['wyvern', 'ancientDragon', 'wyvern'],
+   29: ['armoredBehemoth', 'ancientDragon', 'lich'],
+   30: ['ancientDragon']
 };
 
 /* ── State ─────────────────────────────────────────── */
@@ -539,7 +578,9 @@ let player = {
   equipment: createEmptySlots(),
   equipmentRarity: createEmptySlots(),
   bag: createEmptyBag(),
-  skillChoice: null
+  skillChoice: null,
+  ultimateChoice: null,
+  stats: { kills: 0, goldEarned: 0, deaths: 0, floorsCleared: 0 }
 };
 
 let monsters = [];
@@ -551,6 +592,7 @@ let tower = {
 let pendingLootKey = null;
 let pendingLootQueue = [];
 let pendingSkillChoice = false;
+let pendingUltimateChoice = false;
 
 /* ── Helpers ───────────────────────────────────────── */
 function emptyMonster() {
@@ -558,7 +600,9 @@ function emptyMonster() {
     atk: 0, def: 0, expReward: 0, goldReward: 0,
     splits: false, isMini: false, isBoss: false, immunePhysical: false,
     diveDef: 1, enrage: false, enraged: false, petrify: 0, petrified: false,
-    fireBreathe: false, fireBreathCounter: 0, multiAttack: false, rarity: RARITY_COMMON, rarityBonus: {} };
+    fireBreathe: false, fireBreathCounter: 0, multiAttack: false,
+    critImmune: false, dodge: 0, ignoreDef: 0, summons: null, reflect: 0, dragon: false,
+    rarity: RARITY_COMMON, rarityBonus: {} };
 }
 
 function createEmptySlots() {
@@ -580,6 +624,7 @@ function createEmptyBag() {
 function itemFromKey(key) { return key && ITEMS[key] ? ITEMS[key] : null; }
 
 function getRarityColor(rarity) {
+  if (rarity === RARITY_EPIC) return 'epic';
   if (rarity === RARITY_RARE) return 'rare';
   if (rarity === RARITY_UNCOMMON) return 'uncommon';
   return 'common';
@@ -589,7 +634,8 @@ function getRandomRarity() {
   const r = Math.random();
   if (r < 0.70) return RARITY_COMMON;
   if (r < 0.90) return RARITY_UNCOMMON;
-  return RARITY_RARE;
+  if (r < 0.97) return RARITY_RARE;
+  return RARITY_EPIC;
 }
 
 function rarityDropLabel(rarity, itemName, monsterName) {
@@ -620,6 +666,11 @@ function generateRarityBonus(rarity, itemKey) {
     } else if (validStats.length > 0) {
       bonus[validStats[0]] = Math.max(1, Math.round((item[validStats[0]] || 0) * 0.20));
     }
+  } else if (rarity === RARITY_EPIC) {
+    const chosen = validStats.slice();
+    chosen.forEach(stat => {
+      bonus[stat] = Math.max(1, Math.round((item[stat] || 0) * (Math.random() < 0.5 ? 0.35 : 0.50)));
+    });
   }
   return bonus;
 }
@@ -709,7 +760,9 @@ function saveGame() {
         equipment: { ...player.equipment },
         equipmentRarity: { ...player.equipmentRarity },
         bag: player.bag.map(s => s ? { ...s } : null),
-        skillChoice: player.skillChoice
+        skillChoice: player.skillChoice,
+        ultimateChoice: player.ultimateChoice,
+        stats: { ...player.stats }
       },
       monsters: monsters.map(m => ({ ...m })),
       tower: { ...tower, floorPlan: [...tower.floorPlan] }
@@ -767,6 +820,8 @@ function loadGame() {
     player.equipment = normalizeSlots(saveData.player.equipment);
     player.equipmentRarity = normalizeSlots(saveData.player.equipmentRarity || {});
     player.skillChoice = saveData.player.skillChoice || null;
+    player.ultimateChoice = saveData.player.ultimateChoice || null;
+    player.stats = saveData.player.stats || { kills: 0, goldEarned: 0, deaths: 0, floorsCleared: 0 };
 
     if (saveData.version < 4) {
       player.bag = migrateV3ToBag(saveData.player);
@@ -852,6 +907,17 @@ function playerHasMagicGear() {
   });
 }
 
+function getSetBonuses() {
+  const sets = {};
+  EQUIPMENT_SLOTS.forEach(slot => {
+    const item = itemFromKey(player.equipment[slot]);
+    if (item && item.set) sets[item.set] = (sets[item.set] || 0) + 1;
+  });
+  const bonuses = { fireResist: 0 };
+  if ((sets.dragon || 0) >= 2) bonuses.fireResist += 0.10;
+  return bonuses;
+}
+
 /* ── Player Init ───────────────────────────────────── */
 function initPlayer() {
   player.level = 1; player.atk = 12; player.agi = 10; player.def = 8;
@@ -863,6 +929,8 @@ function initPlayer() {
   player.bag = createEmptyBag();
   player.bag[0] = { type: 'potion', count: 1 };
   player.skillChoice = null;
+  player.ultimateChoice = null;
+  player.stats = { kills: 0, goldEarned: 0, deaths: 0, floorsCleared: 0 };
   recalcHp();
 }
 
@@ -889,6 +957,9 @@ function levelUp() {
     }
     if (player.level === SKILL_CHOICE_LEVEL && !player.skillChoice) {
       pendingSkillChoice = true;
+    }
+    if (player.level === ULTIMATE_SKILL_LEVEL && player.skillChoice && !player.ultimateChoice) {
+      pendingUltimateChoice = true;
     }
     needed = expNeeded(player.level);
   }
@@ -923,6 +994,44 @@ function chooseSkill(skillKey) {
   } else {
     log('Parry learned! Guard now automatically counters the next attack.', 'levelup');
   }
+  updateStats();
+  disableButtons(false);
+  saveGame();
+}
+
+function showUltimateChoice() {
+  if (player.ultimateChoice || !player.skillChoice) return;
+  pendingUltimateChoice = false;
+  const modal = document.getElementById('skill-choice-modal');
+  const opts = document.getElementById('skill-options');
+  let branchA, branchB;
+  if (player.skillChoice === 'cleave') {
+    branchA = 'Whirlwind — Hits ALL enemies at once for 1.2x damage. The definitive AoE finisher.';
+    branchB = 'Cleave Mastery — Single-target Cleave deals 1.6x damage and still hits a second enemy for 1.0x.';
+  } else {
+    branchA = 'Riposte — After Guard, the counter deals 100% ATK and stuns the attacker for 1 turn.';
+    branchB = 'Aegis — Guard now reduces incoming damage by 60% and reflects 30% of it back.';
+  }
+  opts.innerHTML = `
+    <div class="skill-option">
+      <h3>Path 1</h3>
+      <p>${branchA}</p>
+      <button class="skill-option-btn" onclick="chooseUltimate('a')">Choose Path 1</button>
+    </div>
+    <div class="skill-option">
+      <h3>Path 2</h3>
+      <p>${branchB}</p>
+      <button class="skill-option-btn" onclick="chooseUltimate('b')">Choose Path 2</button>
+    </div>
+  `;
+  document.getElementById('skill-choice-overlay').classList.add('active');
+  disableButtons(true);
+}
+
+function chooseUltimate(pathKey) {
+  player.ultimateChoice = player.skillChoice + ':' + pathKey;
+  document.getElementById('skill-choice-overlay').classList.remove('active');
+  log('Ultimate skill mastered! Your ' + player.skillChoice + ' path deepens.', 'levelup');
   updateStats();
   disableButtons(false);
   saveGame();
@@ -1010,8 +1119,20 @@ function renderCamp(message) {
     const rarityColor = item ? getRarityColor(rarity) : 'common';
     const value = item ? '<span class="item-name ' + rarityColor + '">' + item.name + ' (' + item.statText + ')</span>' : 'None equipped';
     return '<div class="camp-gear-line">' + formatSlotLabel(slot) + ': ' + value + '</div>';
-  }).join('');
+  }).join('') + renderSkillTreePreview();
   if (message !== undefined) document.getElementById('camp-message').textContent = message;
+}
+
+function renderSkillTreePreview() {
+  let l30 = player.skillChoice === 'cleave' ? 'Cleave' : player.skillChoice === 'cleave:a' ? 'Cleave' : (player.skillChoice || '—');
+  let l60 = '—';
+  if (player.ultimateChoice === 'cleave:a') l60 = 'Whirlwind (AoE)';
+  else if (player.ultimateChoice === 'cleave:b') l60 = 'Cleave Mastery';
+  else if (player.ultimateChoice === 'parry:a') l60 = 'Riposte (counter+stun)';
+  else if (player.ultimateChoice === 'parry:b') l60 = 'Aegis (guard+reflect)';
+  return '<h2 style="margin-top:8px;">Skill Path</h2>' +
+    '<div class="camp-gear-line">Lv30: ' + l30 + '</div>' +
+    '<div class="camp-gear-line">Lv60: ' + l60 + '</div>';
 }
 
 function showCamp(message) {
@@ -1058,7 +1179,22 @@ function renderFloorSelection() {
     12: ['Floor 12', 'E-rank, deadly - recommended level 15+.'],
     13: ['Floor 13', 'D-rank, infernal - recommended level 20+.'],
     14: ['Floor 14', 'D-rank, infernal - recommended level 20+.'],
-    15: ['Floor 15', 'D-rank Boss Chimera - recommended level 25+.']
+    15: ['Floor 15', 'D-rank Boss Chimera - recommended level 25+.'],
+    16: ['Floor 16', 'C-rank, perilous - recommended level 30+.'],
+    17: ['Floor 17', 'C-rank, perilous - recommended level 32+.'],
+    18: ['Floor 18', 'C-rank, perilous - recommended level 34+.'],
+    19: ['Floor 19', 'C-rank, perilous - recommended level 36+.'],
+    20: ['Floor 20', 'C-rank, perilous - recommended level 38+.'],
+    21: ['Floor 21', 'B-rank Boss Wyvern - recommended level 42+.'],
+    22: ['Floor 22', 'B-rank, terrifying - recommended level 44+.'],
+    23: ['Floor 23', 'B-rank Boss Lich - recommended level 46+.'],
+    24: ['Floor 24', 'B-rank, terrifying - recommended level 48+.'],
+    25: ['Floor 25', 'B-rank Boss Behemoth - recommended level 50+.'],
+    26: ['Floor 26', 'A-rank, mythic - recommended level 54+.'],
+    27: ['Floor 27', 'A-rank, mythic - recommended level 56+.'],
+    28: ['Floor 28', 'A-rank, mythic - recommended level 58+.'],
+    29: ['Floor 29', 'A-rank, mythic - recommended level 59+.'],
+    30: ['Floor 30', 'A-rank Boss Ancient Dragon - recommended level 60+.']
   };
   buttonsEl.innerHTML = '';
   for (let f = 1; f <= MAX_FLOOR; f++) {
@@ -1110,7 +1246,14 @@ function loadMonsterFromTemplate(key) {
     enrage: tmpl.enrage || false, enraged: false,
     petrify: tmpl.petrify || 0, petrified: false,
     fireBreathe: tmpl.fireBreathe || false, fireBreathCounter: 0,
-    multiAttack: tmpl.multiAttack || false, rarity, rarityBonus: {}
+    multiAttack: tmpl.multiAttack || false,
+    critImmune: tmpl.critImmune || false,
+    dodge: tmpl.dodge || 0,
+    ignoreDef: tmpl.ignoreDef || 0,
+    summons: tmpl.summons || null,
+    reflect: tmpl.reflect || 0,
+    dragon: tmpl.dragon || false,
+    rarity, rarityBonus: {}
   };
   monsters.push(m);
 }
@@ -1132,16 +1275,17 @@ function spawnMiniSlime() {
 
 function clearFloor() {
   unlockFloor(tower.floor);
+  player.stats.floorsCleared++;
   tower.phase = tower.floor >= MAX_FLOOR ? 'complete' : 'cleared';
   monsters = []; player.guardActive = false; player.guardCounterReady = false;
   if (tower.floor >= MAX_FLOOR) {
     tower.moreComing = true;
-    log('The tower yields. More floors coming soon.', 'levelup');
+    log('The tower yields. The Dragon awakens... and falls. The tower\'s true depths await in a future update. Your journey is far from over.', 'levelup');
   } else {
     log('Floor ' + tower.floor + ' cleared. Rest or push deeper.', 'levelup');
   }
   updateTowerUI(); updateStats(); disableButtons(false); saveGame();
-  if (tower.floor >= MAX_FLOOR) showCamp('Victory! Floor ' + MAX_FLOOR + ' is cleared. More floors are coming soon.');
+  if (tower.floor >= MAX_FLOOR) showCamp('Victory! Floor ' + MAX_FLOOR + ' is cleared. The tower\'s true depths await in a future update. Your journey is far from over.');
 }
 
 function restAfterFloor() {
@@ -1169,8 +1313,9 @@ function retreatToSelection() {
 
 /* ── Death ─────────────────────────────────────────── */
 function handlePlayerDeath() {
-  const lostGold = Math.floor(player.gold * 0.10);
+  const lostGold = Math.floor((player.gold * 0.10) || 0);
   player.gold = Math.max(0, player.gold - lostGold);
+  player.stats.deaths++;
   player.hp = player.maxHp; player.mp = 20; player.guardActive = false; player.guardCounterReady = false;
   monsters = [];
   document.getElementById('defeat-gold-lost').textContent = lostGold > 0 ? 'You lost ' + lostGold + ' gold.' : 'No gold was lost.';
@@ -1192,6 +1337,7 @@ function awardMonsterRewards(defeatedMonster) {
   if (defeatedMonster.expReward > 0 || defeatedMonster.goldReward > 0) {
     player.exp += defeatedMonster.expReward;
     player.gold += defeatedMonster.goldReward;
+    player.stats.goldEarned += defeatedMonster.goldReward;
     log('The ' + defeatedMonster.name + ' is defeated! You gain ' + defeatedMonster.expReward + ' EXP and ' + defeatedMonster.goldReward + ' gold.', 'gold');
   } else {
     log('The ' + defeatedMonster.name + ' is defeated!', 'system');
@@ -1202,6 +1348,7 @@ function handleMonsterDeath(monsterIndex) {
   if (monsterIndex < 0 || monsterIndex >= monsters.length) return;
   const defeatedMonster = { ...monsters[monsterIndex] };
   const shouldSplit = defeatedMonster.splits && !defeatedMonster.isMini;
+  if (!defeatedMonster.isMini) player.stats.kills++;
   awardMonsterRewards(defeatedMonster);
   tryDrops(defeatedMonster);
   levelUp();
@@ -1228,6 +1375,27 @@ function handleMonsterDeath(monsterIndex) {
         log('Boss loot! The Chimera drops a Steel Sword and a Guardian Amulet.', 'loot');
         receiveEquipment('steelSword', true);
         receiveEquipment('guardianAmulet', true);
+      }
+      if (defeatedMonster.isBoss && defeatedMonster.name === 'Wyvern') {
+        log('Boss loot! The Wyvern drops a Steel Sword and a Dragonscale Plate.', 'loot');
+        receiveEquipment('steelSword', true);
+        receiveEquipment('dragonscalePlate', true);
+      }
+      if (defeatedMonster.isBoss && defeatedMonster.name === 'Lich') {
+        log('Boss loot! The Lich drops a Guardian Amulet and a Dragon Helm.', 'loot');
+        receiveEquipment('guardianAmulet', true);
+        receiveEquipment('dragonHelm', true);
+      }
+      if (defeatedMonster.isBoss && defeatedMonster.name === 'Armored Behemoth') {
+        log('Boss loot! The Armored Behemoth drops a Dragonscale Plate and a Dragon Helm.', 'loot');
+        receiveEquipment('dragonscalePlate', true);
+        receiveEquipment('dragonHelm', true);
+      }
+      if (defeatedMonster.isBoss && defeatedMonster.name === 'Ancient Dragon') {
+        log('Boss loot! The Ancient Dragon drops a Steel Sword, a Dragonscale Plate, and a Dragon Helm!', 'loot');
+        receiveEquipment('steelSword', true);
+        receiveEquipment('dragonscalePlate', true);
+        receiveEquipment('dragonHelm', true);
       }
       if (tower.currentIndex >= tower.floorPlan.length) clearFloor();
       else spawnCurrentFloorMonsters();
@@ -1320,6 +1488,26 @@ function tryDrops(defeatedMonster) {
       receiveEquipment('spectralCharm', true, rarity, bonus);
     }
   }
+  if (tower.floor >= 21 && tower.floor <= 30 && !defeatedMonster.isBoss) {
+    if (Math.random() < EPIC_DROP_CHANCE) {
+      const rarity = RARITY_EPIC;
+      const bonus = generateRarityBonus(rarity, 'dragonscalePlate');
+      log(rarityDropLabel(rarity, 'Dragonscale Plate', defeatedMonster.name), 'loot');
+      receiveEquipment('dragonscalePlate', true, rarity, bonus);
+    }
+    if (Math.random() < EPIC_DROP_CHANCE) {
+      const rarity = RARITY_EPIC;
+      const bonus = generateRarityBonus(rarity, 'dragonHelm');
+      log(rarityDropLabel(rarity, 'Dragon Helm', defeatedMonster.name), 'loot');
+      receiveEquipment('dragonHelm', true, rarity, bonus);
+    }
+    if (Math.random() < EPIC_DROP_CHANCE) {
+      const rarity = RARITY_EPIC;
+      const bonus = generateRarityBonus(rarity, 'steelSword');
+      log(rarityDropLabel(rarity, 'Steel Sword', defeatedMonster.name), 'loot');
+      receiveEquipment('steelSword', true, rarity, bonus);
+    }
+  }
 }
 
 /* ── Equipment Receive / Loot ──────────────────────── */
@@ -1410,6 +1598,22 @@ function openBag() {
 }
 
 function closeBag() { document.getElementById('bag-overlay').classList.remove('active'); }
+
+function openStats() {
+  closeShop(); closeBag(); closeLootPrompt();
+  const s = player.stats;
+  document.getElementById('stats-content').innerHTML = [
+    ['Monsters Slain', s.kills],
+    ['Total Gold Earned', s.goldEarned],
+    ['Deaths', s.deaths],
+    ['Floors Cleared', s.floorsCleared],
+    ['Highest Floor', tower.highestFloorReached],
+    ['Current Level', player.level]
+  ].map(([label, value]) => '<div class="camp-gear-line">' + label + ': <strong>' + value + '</strong></div>').join('');
+  document.getElementById('stats-overlay').classList.add('active');
+}
+
+function closeStats() { document.getElementById('stats-overlay').classList.remove('active'); }
 
 function renderBagUI() {
   const content = document.getElementById('bag-content');
@@ -1550,7 +1754,7 @@ function buyPotion() {
   }
   player.gold -= SHOP_ITEMS.potion.cost;
   log('Bought a Health Potion.', 'heal');
-  updateStats(); updateShopUI(); saveGame();
+updateStats(); updateShopUI(); saveGame();
 }
 
 function buyEquipment(itemKey) {
@@ -1670,6 +1874,14 @@ function updateStats() {
     btnCleave.style.display = 'none';
   }
 
+  const btnUltimate = document.getElementById('btn-ultimate');
+  if (player.ultimateChoice) {
+    btnUltimate.style.display = '';
+    btnUltimate.textContent = 'Ultimate: ' + (player.ultimateChoice.startsWith('cleave') ? 'Whirlwind/Edge' : 'Riposte/Aegis');
+  } else {
+    btnUltimate.style.display = 'none';
+  }
+
   if (player.skillChoice === 'parry') {
     document.getElementById('btn-guard').textContent = 'Guard → Parry';
   } else {
@@ -1732,6 +1944,7 @@ function disableButtons(resolving) {
   document.getElementById('btn-potion').disabled = resolving || !inCombat || getTotalPotions() <= 0 || player.hp >= player.maxHp;
   document.getElementById('btn-power').disabled = resolving || !inCombat || player.powerStrikeCooldown > 0 || player.level < POWER_STRIKE_LEVEL || player.skillChoice;
   document.getElementById('btn-cleave').disabled = resolving || !inCombat || player.skillChoice !== 'cleave';
+  document.getElementById('btn-ultimate').disabled = resolving || !inCombat || !player.ultimateChoice;
   document.getElementById('btn-ascend').disabled = resolving || tower.phase !== 'ready' || tower.moreComing;
   document.getElementById('btn-rest').disabled = resolving || (tower.phase !== 'cleared' && tower.phase !== 'complete') || player.hp >= player.maxHp;
   document.getElementById('btn-push').disabled = resolving || tower.phase !== 'cleared' || tower.floor >= MAX_FLOOR;
@@ -1775,8 +1988,19 @@ function monsterDamageToPlayer(monsterIndex) {
   const m = monsters[monsterIndex];
   let atk = m.atk;
   if (m.enraged) atk = Math.round(atk * 1.5);
-  let dmg = Math.max(1, Math.round(atk - getTotalDef() / 2));
-  if (player.guardActive) dmg = Math.max(1, Math.round(dmg * 0.7));
+  let dmg;
+  if (m.dragon) {
+    dmg = Math.max(1, Math.round(m.maxHp * 0.20));
+  } else if (m.ignoreDef) {
+    dmg = Math.max(1, Math.round(atk * (1 - m.ignoreDef)));
+  } else {
+    dmg = Math.max(1, Math.round(atk - getTotalDef() / 2));
+  }
+  if (player.guardActive) {
+    const reduce = player.aegisGuard ? 0.40 : 0.70;
+    dmg = Math.max(1, Math.round(dmg * reduce));
+  }
+  if (m.fireBreathe && getSetBonuses().fireResist > 0) dmg = Math.max(1, Math.round(dmg * (1 - getSetBonuses().fireResist)));
   return dmg;
 }
 
@@ -1810,30 +2034,50 @@ function monsterTurn() {
       m.fireBreathCounter = 3;
       return;
     }
-    const dmg = monsterDamageToPlayer(idx);
-    const prevHp = player.hp;
-    player.hp -= dmg;
-    if (prevHp > 1 && player.hp <= 0) player.hp = 1;
-    let msg = m.name + ' attacks and deals ' + dmg + ' damage!';
-    if (player.guardActive) msg += ' (Guarded)';
-    log(msg, 'damage');
-    playSound('hit');
-    if (player.guardActive && player.skillChoice === 'parry' && player.guardCounterReady) {
-      const counterDmg = Math.max(1, Math.round(getTotalAtk() * 0.5));
-      m.hp -= counterDmg;
-      log(m.name + ' is countered for ' + counterDmg + ' damage!', 'dealt');
-      playSound('attack');
-      player.guardCounterReady = false;
-    }
-    player.guardActive = false;
-    if (m.enrage && m.hp / m.maxHp < 0.30 && !m.enraged) {
-      m.enraged = true;
-      log(m.name + ' is enraged! ATK +50%!', 'enemy');
-    }
-    if (m.petrify && !m.petrified && Math.random() < m.petrify) {
-      player.petrifiedTurns++;
-      log(player.name + ' is petrified and will skip the next turn!', 'damage');
+    if (m.dodge && Math.random() < m.dodge) {
+      log(m.name + ' evades the counter-attack window!', 'enemy');
+    } else {
+      const dmg = monsterDamageToPlayer(idx);
+      const prevHp = player.hp;
+      player.hp -= dmg;
+      if (prevHp > 1 && player.hp <= 0) player.hp = 1;
+      let msg = m.name + ' attacks and deals ' + dmg + ' damage!';
+      if (player.guardActive) msg += ' (Guarded)';
+      log(msg, 'damage');
       playSound('hit');
+      if (player.guardActive && player.skillChoice === 'parry' && player.guardCounterReady) {
+        const counterMult = player.ultimateRiposte ? 1.0 : 0.5;
+        const counterDmg = Math.max(1, Math.round(getTotalAtk() * counterMult));
+        m.hp -= counterDmg;
+        const stunMsg = player.ultimateRiposte ? ' and is STUNNED!' : '!';
+        log(m.name + ' is countered for ' + counterDmg + ' damage' + stunMsg, 'dealt');
+        playSound('attack');
+        if (player.ultimateRiposte) m.petrified = true;
+        player.guardCounterReady = false;
+        player.ultimateRiposte = false;
+      }
+      if (player.aegisGuard) {
+        const reflectDmg = Math.max(1, Math.round(dmg * 0.30));
+        m.hp -= reflectDmg;
+        log(m.name + ' takes ' + reflectDmg + ' reflected damage!', 'dealt');
+        player.aegisGuard = false;
+      }
+      player.guardActive = false;
+      if (m.hp <= 0) { handleMonsterDeath(idx); if (monsters.length === 0) { return; } }
+      if (m.enrage && m.hp / m.maxHp < 0.30 && !m.enraged) {
+        m.enraged = true;
+        log(m.name + ' is enraged! ATK +50%!', 'enemy');
+      }
+      if (m.summons && monsters.length < 4 && !m._summoned) {
+        m._summoned = true;
+        loadMonsterFromTemplate(m.summons);
+        log(m.name + ' summons a ' + monsters[monsters.length - 1].name + '!', 'enemy');
+      }
+      if (m.petrify && !m.petrified && Math.random() < m.petrify) {
+        player.petrifiedTurns++;
+        log(player.name + ' is petrified and will skip the next turn!', 'damage');
+        playSound('hit');
+      }
     }
   });
   updateStats(); updateTowerUI();
@@ -1863,7 +2107,11 @@ function doSlash() {
   if (consumePetrify()) return;
   if (tower.phase !== 'combat' || monsters.length === 0) return;
   disableButtons(true);
-  const crit = Math.random() < getCritChance();
+  let crit = Math.random() < getCritChance();
+  if (crit && monsters[0] && monsters[0].critImmune) {
+    crit = false;
+    log(monsters[0].name + ' is immune to critical hits!', 'system');
+  }
   const killed = applyPlayerDamage(playerDamageToMonster(crit ? 1.5 : 1, 0), 'Slash', crit, [0]);
   if (killed) {
     handleMonsterDeath(0);
@@ -1932,6 +2180,50 @@ function doCleave() {
   setTimeout(() => { const survived = monsterTurn(); if (survived) endPlayerTurn(false); }, 300);
 }
 
+function doUltimate() {
+  if (consumePetrify()) return;
+  if (tower.phase !== 'combat' || monsters.length === 0 || !player.ultimateChoice) return;
+  disableButtons(true);
+  const choice = player.ultimateChoice;
+  if (choice === 'cleave:a') {
+    const targets = monsters.map((_, i) => i);
+    let anyKilled = false;
+    targets.forEach(idx => {
+      if (idx < monsters.length && monsters[idx].hp > 0) {
+        const dmg = Math.max(1, Math.round(playerDamageToMonster(1.2, idx)));
+        applyPlayerDamage(dmg, 'Whirlwind', false, [idx]);
+      }
+    });
+    monsters.slice().forEach((m, idx) => { if (m.hp <= 0) { handleMonsterDeath(idx); anyKilled = true; } });
+    if (monsters.length === 0) { endPlayerTurn(false); return; }
+  } else if (choice === 'cleave:b') {
+    const targets = monsters.length === 1 ? [0] : [0, 1];
+    targets.forEach(idx => {
+      const mult = idx === 0 ? 1.6 : 1.0;
+      const dmg = Math.max(1, Math.round(playerDamageToMonster(mult, idx)));
+      applyPlayerDamage(dmg, 'Cleave Mastery', false, [idx]);
+    });
+    for (let i = targets.length - 1; i >= 0; i--) {
+      if (monsters[targets[i]] && monsters[targets[i]].hp <= 0) handleMonsterDeath(targets[i]);
+    }
+    if (monsters.length === 0) { endPlayerTurn(false); return; }
+  } else if (choice === 'parry:a') {
+    player.guardActive = true;
+    player.guardCounterReady = true;
+    player.ultimateRiposte = true;
+    log('You raise a Riposte stance! Next attack is countered and stuns.', 'skill');
+    setTimeout(() => { const survived = monsterTurn(); if (survived) endPlayerTurn(false); }, 300);
+    return;
+  } else if (choice === 'parry:b') {
+    player.guardActive = true;
+    player.aegisGuard = true;
+    log('You raise the Aegis! Incoming damage cut by 60%, 30% reflected.', 'skill');
+    setTimeout(() => { const survived = monsterTurn(); if (survived) endPlayerTurn(false); }, 300);
+    return;
+  }
+  setTimeout(() => { const survived = monsterTurn(); if (survived) endPlayerTurn(false); }, 300);
+}
+
 function doRestart() {
   initPlayer();
   player.hp = player.maxHp;
@@ -1977,6 +2269,7 @@ document.getElementById('btn-guard').addEventListener('click', doGuard);
 document.getElementById('btn-potion').addEventListener('click', doPotion);
 document.getElementById('btn-power').addEventListener('click', doPowerStrike);
 document.getElementById('btn-cleave').addEventListener('click', doCleave);
+document.getElementById('btn-ultimate').addEventListener('click', doUltimate);
 document.getElementById('btn-ascend').addEventListener('click', startFloor);
 document.getElementById('btn-rest').addEventListener('click', restAfterFloor);
 document.getElementById('btn-push').addEventListener('click', pushDeeper);
@@ -2005,6 +2298,8 @@ document.getElementById('camp-btn').addEventListener('click', resolvePlayerDeath
 document.getElementById('camp-enter-tower').addEventListener('click', enterTowerFromCamp);
 document.getElementById('camp-shop').addEventListener('click', openShop);
 document.getElementById('camp-bag').addEventListener('click', openBag);
+document.getElementById('camp-stats').addEventListener('click', openStats);
+document.getElementById('close-stats').addEventListener('click', closeStats);
 document.getElementById('camp-rest').addEventListener('click', restAtCampfire);
 
 /* ── Init ──────────────────────────────────────────── */
@@ -2026,6 +2321,7 @@ if (player.hp <= 0) {
   showCamp('The campfire is warm. Prepare for your next climb.');
 }
 if (pendingSkillChoice) showSkillChoice();
+if (pendingUltimateChoice) showUltimateChoice();
 </script>
 </body>
 </html>
