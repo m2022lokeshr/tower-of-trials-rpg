@@ -22,7 +22,16 @@
     padding: 10px 16px;
     text-align: center;
     flex-shrink: 0;
+    position: relative;
   }
+  #sidebar-toggle {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    background: #2c3e50; color: #fff; border: 1px solid #34495e;
+    padding: 3px 10px; font-family: inherit; font-size: 0.9rem;
+    cursor: pointer; border-radius: 3px;
+  }
+  #sidebar-toggle:hover { background: #34495e; }
+  body.sidebar-collapsed #stats-panel { display: none; }
   #floor-title { color: #f1c40f; font-size: 1.35rem; font-weight: bold; }
   #floor-subtitle { color: #aaa; font-size: 0.9rem; margin-top: 2px; }
   #main-area { display: flex; flex: 1; overflow: hidden; }
@@ -137,13 +146,13 @@
   .action-btn.shop:hover:not(:disabled) { background: #705816; }
   .action-btn.bag { background: #2e6b4f; border-color: #256b4a; }
   .action-btn.bag:hover:not(:disabled) { background: #256b4a; }
-  #defeat-overlay, #shop-overlay, #floor-select-overlay, #loot-overlay, #bag-overlay, #camp-overlay, #skill-choice-overlay, #stats-overlay {
+  #defeat-overlay, #shop-overlay, #floor-select-overlay, #bag-overlay, #camp-overlay, #skill-choice-overlay, #stats-overlay {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(0,0,0,0.85); display: none;
     align-items: center; justify-content: center; z-index: 100;
   }
   #defeat-overlay.active, #shop-overlay.active, #floor-select-overlay.active,
-  #loot-overlay.active, #bag-overlay.active, #camp-overlay.active, #skill-choice-overlay.active, #stats-overlay.active { display: flex; }
+  #bag-overlay.active, #camp-overlay.active, #skill-choice-overlay.active, #stats-overlay.active { display: flex; }
   #camp-overlay {
     background:
       radial-gradient(ellipse at 50% 15%, #2a2436 0%, rgba(30, 25, 39, 0.72) 30%, rgba(8, 8, 11, 0.98) 78%),
@@ -151,11 +160,14 @@
     z-index: 90; padding: 12px; overflow: hidden;
   }
   #camp-dashboard {
-    width: min(720px, 100%); max-height: 100%;
+    width: min(720px, 100%); max-height: calc(100dvh - 24px);
     border: 1px solid #66527d; outline: 1px solid #25202e; outline-offset: 5px;
     background: rgba(18, 17, 23, 0.94);
     padding: clamp(12px, 2vh, 24px); text-align: center; overflow: hidden;
+    display: flex; flex-direction: column; min-height: 0;
   }
+  #camp-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  #camp-actions { flex-shrink: 0; }
   #camp-title {
     color: #f1c40f; font-size: clamp(1.7rem, 5vw, 3.2rem); letter-spacing: 0.04em;
     font-weight: bold; margin-bottom: 4px;
@@ -183,6 +195,7 @@
     font-family: inherit; font-size: 0.9rem; cursor: pointer; border-radius: 3px;
   }
   .camp-action:hover { background: #3a2b47; }
+  .camp-action:disabled { opacity: 0.45; cursor: not-allowed; background: #2b2233; }
   .camp-action.primary { background: #8e44ad; border-color: #a85dc8; }
   .camp-action.primary:hover { background: #9b59b6; }
   #camp-message { min-height: 1.2em; color: #2ecc71; font-size: 0.78rem; margin-top: 8px; }
@@ -211,15 +224,24 @@
     cursor: pointer; border-radius: 3px; margin: 0 6px;
   }
   #camp-btn:hover { background: #34495e; }
-  #shop-modal, #floor-select-modal, #loot-modal, #bag-modal, #skill-choice-modal, #stats-modal {
+  #shop-modal, #floor-select-modal, #bag-modal, #skill-choice-modal, #stats-modal {
     width: min(540px, calc(100vw - 32px));
     background: #171717; border: 1px solid #444;
     padding: 16px; border-radius: 3px;
   }
-  #shop-modal, #floor-select-modal, #bag-modal, #stats-modal { max-height: 82vh; overflow-y: auto; }
-  #shop-modal h2, #floor-select-modal h2, #loot-modal h2, #bag-modal h2, #skill-choice-modal h2 {
-    color: #f1c40f; font-size: 1.2rem; margin-bottom: 10px;
+  #shop-modal, #floor-select-modal, #bag-modal, #stats-modal {
+    max-height: 82vh; overflow: hidden;
   }
+  #shop-modal, #floor-select-modal, #bag-modal, #stats-modal, #skill-choice-modal, #ngplus-modal, #defeat-box {
+    display: flex; flex-direction: column; min-height: 0;
+  }
+  #shop-modal h2, #floor-select-modal h2, #bag-modal h2, #skill-choice-modal h2 {
+    color: #f1c40f; font-size: 1.2rem; margin-bottom: 10px; flex-shrink: 0;
+  }
+  .modal-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  .modal-header, .modal-footer { flex-shrink: 0; }
+  #stats-footer { display: flex; justify-content: flex-end; align-items: center; margin-top: 12px; }
+  #shop-modal .modal-body, #floor-select-modal .modal-body, #bag-modal .modal-body, #stats-modal .modal-body { flex: 1; }
   .shop-row {
     display: grid; grid-template-columns: 1fr auto auto;
     gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid #2d2d2d;
@@ -229,6 +251,9 @@
     display: flex; justify-content: space-between; align-items: center; margin-top: 12px;
   }
   #shop-sell-section { border-top: 1px solid #444; margin-top: 10px; padding-top: 10px; }
+  #shop-message { min-height: 1.3em; margin-top: 10px; font-size: 0.85rem; color: #bdc3c7; }
+  #shop-message.success { color: #2ecc71; }
+  #shop-message.fail { color: #e74c3c; }
   #shop-sell-section h3 { color: #e67e22; font-size: 0.95rem; margin-bottom: 6px; }
   .sell-row {
     display: flex; justify-content: space-between; align-items: center;
@@ -244,7 +269,6 @@
   .floor-choice:hover:not(:disabled) { background: #2c3e50; }
   .floor-choice:disabled { color: #666; cursor: not-allowed; background: #191919; }
   .floor-choice small { display: block; color: #aaa; margin-top: 3px; }
-  #loot-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }
   .bag-slot {
     display: flex; justify-content: space-between; align-items: center;
     padding: 7px 8px; border: 1px solid #333; background: #222;
@@ -270,11 +294,259 @@
     cursor: pointer; border-radius: 3px; margin-top: 8px; width: 100%;
   }
   .skill-option-btn:hover { background: #9b59b6; }
+
+  /* ── Battle Stage ─────────────────────────────────── */
+  #battle-stage {
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 110px;
+    margin-bottom: 8px;
+    padding: 10px 12px 6px;
+    border: 1px solid #333;
+    border-radius: 3px;
+    background:
+      radial-gradient(ellipse at 50% 100%, rgba(120, 60, 160, 0.10) 0%, transparent 60%),
+      linear-gradient(to bottom, #141118 0%, #1a1a22 70%, #121116 100%);
+    overflow: hidden;
+  }
+  #player-sprite { margin-right: auto; }
+  #monster-row {
+    display: flex;
+    gap: 14px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+  .fighter, .monster-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 84px;
+  }
+  .fighter-name { font-size: 0.72rem; color: #bdc3c7; text-align: center; }
+  .sprite { position: relative; width: 56px; height: 56px; }
+  .monster-card .sprite { width: 56px; height: 56px; }
+  .monster-hp-mini {
+    width: 68px; height: 5px; background: #333;
+    border: 1px solid #444; border-radius: 2px; overflow: hidden;
+  }
+  .monster-hp-mini-fill { height: 100%; background: #c0392b; transition: width 0.25s; }
+
+  .sprite { animation: anim-idle 2.6s ease-in-out infinite; }
+  .monster-card.anim-attack .sprite, #player-sprite.anim-attack .sprite { animation: anim-attack 0.35s ease-out; }
+  .monster-card.fx-hit .sprite { animation: fx-hit 0.3s linear; filter: drop-shadow(0 0 6px #e74c3c) brightness(1.6); }
+  .monster-card.fx-hit .monster-hp-mini-fill { background: #ff5a3c; }
+  #player-sprite.fx-hit .sprite { animation: fx-hit 0.3s linear; filter: drop-shadow(0 0 6px #e74c3c) brightness(1.6); }
+  .monster-card.fx-death { animation: fx-death 0.45s ease-in both; }
+  .monster-card.fx-spawn .sprite { animation: fx-spawn 0.35s ease-out; }
+
+  /* Player placeholder */
+  .sprite-player {
+    background: linear-gradient(160deg, #7a8ba6 0%, #4a5873 45%, #2e3a52 100%);
+    border-radius: 14px 14px 8px 8px;
+    box-shadow: inset -4px -6px 0 rgba(0,0,0,0.25);
+  }
+  .sprite-player::before {
+    content: ''; position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+    width: 22px; height: 12px; background: #55637f; border-radius: 10px 10px 0 0;
+  }
+  .sprite-player::after {
+    content: ''; position: absolute; right: -12px; bottom: 4px;
+    width: 4px; height: 34px; background: linear-gradient(#e8e8e8, #9aa3b2);
+    border-radius: 2px; box-shadow: -2px 0 0 #7f8898;
+  }
+
+  /* Monster placeholder shapes (no emoji) */
+  .sprite-slime {
+    background: radial-gradient(circle at 35% 30%, #9be86a 0%, #57c34f 45%, #2f8f3f 100%);
+    border-radius: 50% 50% 45% 45%;
+    box-shadow: inset -6px -8px 0 rgba(0,0,0,0.25);
+  }
+  .sprite-slime::before, .sprite-slime::after {
+    content: ''; position: absolute; top: 18px;
+    width: 8px; height: 10px; background: #1c3a1e; border-radius: 50%;
+  }
+  .sprite-slime::before { left: 14px; }
+  .sprite-slime::after { right: 14px; }
+  .sprite-goblin {
+    background: linear-gradient(160deg, #c9a24a 0%, #8f6f2d 50%, #5d4519 100%);
+    border-radius: 12px 12px 6px 6px;
+    box-shadow: inset -4px -6px 0 rgba(0,0,0,0.3);
+  }
+  .sprite-goblin::before, .sprite-goblin::after {
+    content: ''; position: absolute; top: -9px;
+    width: 0; height: 0;
+    border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 12px solid #6b7d3f;
+  }
+  .sprite-goblin::before { left: 8px; }
+  .sprite-goblin::after { right: 8px; }
+  .sprite-wolf {
+    background: linear-gradient(160deg, #c8cdd6 0%, #7c8594 50%, #454c59 100%);
+    border-radius: 45% 55% 20% 20%;
+    box-shadow: inset -6px -6px 0 rgba(0,0,0,0.25);
+  }
+  .sprite-wolf::before, .sprite-wolf::after {
+    content: ''; position: absolute; top: -10px;
+    width: 0; height: 0;
+    border-bottom: 12px solid #7c8594;
+  }
+  .sprite-wolf::before { left: 6px; border-left: 4px solid transparent; border-right: 8px solid transparent; }
+  .sprite-wolf::after { right: 6px; border-left: 8px solid transparent; border-right: 4px solid transparent; }
+  .sprite-orc, .sprite-ogre, .sprite-boss {
+    background: linear-gradient(160deg, #6fae5c 0%, #45703a 50%, #2c4a26 100%);
+    border-radius: 14px 14px 8px 8px;
+    box-shadow: inset -5px -7px 0 rgba(0,0,0,0.3);
+  }
+  .sprite-orc::before, .sprite-ogre::before, .sprite-boss::before {
+    content: ''; position: absolute; top: -8px; left: 6px;
+    width: 12px; height: 8px; background: #e8dcc8; border-radius: 40% 40% 0 0;
+  }
+  .sprite-orc::after, .sprite-ogre::after, .sprite-boss::after {
+    content: ''; position: absolute; top: -8px; right: 6px;
+    width: 12px; height: 8px; background: #e8dcc8; border-radius: 40% 40% 0 0;
+  }
+  .sprite-ogre, .sprite-boss { transform: scale(1.15); }
+  .sprite-miniboss {
+    background: linear-gradient(160deg, #b06a3c 0%, #7d4525 50%, #4f2a16 100%);
+    border-radius: 12px 12px 6px 6px;
+    box-shadow: inset -5px -7px 0 rgba(0,0,0,0.35);
+  }
+  .sprite-miniboss::before, .sprite-miniboss::after {
+    content: ''; position: absolute; top: -10px;
+    width: 0; height: 0;
+    border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 14px solid #d8b46a;
+  }
+  .sprite-miniboss::before { left: 6px; }
+  .sprite-miniboss::after { right: 6px; }
+  .sprite-undead {
+    background: linear-gradient(160deg, #e5e2da 0%, #9a948a 50%, #57534b 100%);
+    border-radius: 14px 14px 8px 8px;
+    box-shadow: inset -5px -7px 0 rgba(0,0,0,0.35);
+  }
+  .sprite-undead::before, .sprite-undead::after {
+    content: ''; position: absolute; top: 14px;
+    width: 7px; height: 7px; background: #1a1a1a; border-radius: 50%;
+  }
+  .sprite-undead::before { left: 12px; }
+  .sprite-undead::after { right: 12px; }
+  .sprite-wyrm {
+    background: linear-gradient(160deg, #9e5f8a 0%, #643a58 50%, #3a2133 100%);
+    border-radius: 16px 16px 10px 10px;
+    box-shadow: inset -6px -8px 0 rgba(0,0,0,0.35);
+  }
+  .sprite-wyrm::before, .sprite-wyrm::after {
+    content: ''; position: absolute; top: -7px;
+    width: 0; height: 0;
+    border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 10px solid #d8d0c0;
+  }
+  .sprite-wyrm::before { left: 10px; }
+  .sprite-wyrm::after { right: 10px; }
+  .sprite-golem {
+    background: linear-gradient(160deg, #9aa0a8 0%, #5c636c 50%, #353a41 100%);
+    border-radius: 6px;
+    box-shadow: inset -5px -7px 0 rgba(0,0,0,0.4);
+  }
+  .sprite-golem::before {
+    content: ''; position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    width: 18px; height: 8px; background: rgba(255, 190, 90, 0.5); border-radius: 50%;
+  }
+  .sprite-dragon {
+    background: linear-gradient(160deg, #7a3b3b 0%, #4c2222 55%, #2b1212 100%);
+    border-radius: 18px 18px 10px 10px;
+    box-shadow: inset -7px -9px 0 rgba(0,0,0,0.4);
+    transform: scale(1.2);
+  }
+  .sprite-dragon::before, .sprite-dragon::after {
+    content: ''; position: absolute; top: -12px;
+    width: 0; height: 0;
+    border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 16px solid #e0c86a;
+  }
+  .sprite-dragon::before { left: 8px; }
+  .sprite-dragon::after { right: 8px; }
+  .sprite-unknown {
+    background: linear-gradient(160deg, #5a5a5a 0%, #333 60%, #1d1d1d 100%);
+    border-radius: 10px;
+    box-shadow: inset -4px -6px 0 rgba(0,0,0,0.35);
+  }
+  .sprite-unknown::before {
+    content: '?'; position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #888; font-weight: bold; font-size: 1.2rem;
+  }
+
+  /* ── Animations ───────────────────────────────────── */
+  @keyframes anim-idle {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+  }
+  @keyframes anim-attack {
+    0% { transform: translateX(0); }
+    40% { transform: translateX(10px) scale(1.04); }
+    100% { transform: translateX(0); }
+  }
+  @keyframes fx-hit {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    50% { transform: translateX(5px); }
+    75% { transform: translateX(-3px); }
+  }
+  @keyframes fx-death {
+    to { opacity: 0; transform: translateY(10px) scale(0.85); }
+  }
+  @keyframes fx-spawn {
+    from { transform: scale(0.4); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .log-entry { animation: log-fade-in 0.25s ease-out both; }
+  @keyframes log-fade-in {
+    from { opacity: 0; transform: translateY(3px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── NG+ Overlay ──────────────────────────────────── */
+  #ngplus-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85); display: none;
+    align-items: center; justify-content: center; z-index: 110;
+  }
+  #ngplus-overlay.active { display: flex; }
+  #ngplus-modal {
+    width: min(480px, calc(100vw - 32px)); max-height: calc(100dvh - 24px);
+    background: #171717; border: 1px solid #f1c40f;
+    padding: 24px; border-radius: 3px; text-align: center; overflow: hidden;
+    animation: deathDrop 0.45s cubic-bezier(.22,.68,0,1.4) both;
+  }
+  #ngplus-modal p { flex-shrink: 0; }
+  #ngplus-actions { flex-shrink: 0; }
+  #ngplus-modal h1 { color: #f1c40f; font-size: 1.6rem; margin-bottom: 12px; }
+  #ngplus-modal p { color: #bdc3c7; font-size: 0.9rem; line-height: 1.5; margin-bottom: 8px; }
+  #ngplus-actions { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+  #ngplus-start {
+    background: #8e44ad; color: #fff; border: 1px solid #a85dc8;
+    padding: 10px 18px; font-family: inherit; font-size: 0.95rem;
+    cursor: pointer; border-radius: 3px;
+  }
+  #ngplus-start:hover { background: #9b59b6; }
+  #ngplus-camp {
+    background: #2c3e50; color: #fff; border: 1px solid #34495e;
+    padding: 10px 18px; font-family: inherit; font-size: 0.95rem;
+    cursor: pointer; border-radius: 3px;
+  }
+  #ngplus-camp:hover { background: #34495e; }
+
+  /* ============================================
+     CUSTOM SPRITE OVERRIDES — drop your own art here.
+     See README "Customizing Monster Sprites".
+     ============================================ */
 </style>
 </head>
 <body>
 
 <div id="floor-header">
+  <button id="sidebar-toggle" type="button" aria-controls="stats-panel" aria-expanded="true" title="Hide player stats">Hide Stats</button>
   <div id="floor-title">Tower of Trials - Floor 1</div>
   <div id="floor-subtitle">Prepare, then ascend.</div>
 </div>
@@ -301,6 +573,7 @@
     <div class="stat-row"><span class="stat-label">MP</span><span class="stat-value" id="st-mp">20</span></div>
     <div class="stat-row"><span class="stat-label">Gold</span><span class="stat-value" id="st-gold">0</span></div>
     <div class="stat-row"><span class="stat-label">Potions</span><span class="stat-value" id="st-potions">1</span></div>
+    <div class="stat-row"><span class="stat-label">NG+</span><span class="stat-value" id="st-ngplus">—</span></div>
   </div>
 
   <div id="log-panel">
@@ -309,6 +582,13 @@
       <h3>Floor Preview</h3>
       <div id="floor-preview"></div>
       <div id="floor-status"></div>
+    </div>
+    <div id="battle-stage">
+      <div class="fighter" id="player-sprite">
+        <div class="sprite sprite-player"></div>
+        <div class="fighter-name">Swordsman</div>
+      </div>
+      <div id="monster-row"></div>
     </div>
     <div id="combat-log"></div>
   </div>
@@ -326,6 +606,7 @@
   <button class="action-btn primary" id="btn-rest">Rest</button>
   <button class="action-btn primary" id="btn-push">Push Deeper</button>
   <button class="action-btn" id="btn-retreat">Retreat</button>
+  <button class="action-btn" id="btn-flee" style="display:none">Flee</button>
   <button class="action-btn bag" id="btn-bag">🎒 Bag</button>
   <button class="action-btn shop" id="btn-shop">Shop</button>
 </div>
@@ -342,45 +623,48 @@
 </div>
 
 <div id="shop-overlay">
-  <div id="shop-modal">
-    <h2>Shop</h2>
-    <div class="shop-row">
-      <div><strong>Health Potion</strong><div class="shop-desc">Restores 30 HP in combat.</div></div>
-      <span>15 gold</span>
-      <button class="mini-btn buy" id="buy-potion">Buy</button>
+  <div id="shop-modal" role="dialog" aria-modal="true" aria-labelledby="shop-title">
+    <h2 id="shop-title">Shop</h2>
+    <div class="modal-body">
+      <div class="shop-row">
+        <div><strong>Health Potion</strong><div class="shop-desc">Restores 30 HP in combat.</div></div>
+        <span>15 gold</span>
+        <button class="mini-btn buy" id="buy-potion">Buy</button>
+      </div>
+      <div class="shop-row">
+        <div><strong>Leather Armor</strong><div class="shop-desc">Armor, +3 DEF.</div></div>
+        <span>50 gold</span>
+        <button class="mini-btn buy" id="buy-leather">Buy</button>
+      </div>
+      <div class="shop-row">
+        <div><strong>Iron Sword</strong><div class="shop-desc">Weapon, +5 ATK.</div></div>
+        <span>80 gold</span>
+        <button class="mini-btn buy" id="buy-sword">Buy</button>
+      </div>
+      <div class="shop-row">
+        <div><strong>Leather Cap</strong><div class="shop-desc">Helmet, +2 DEF.</div></div>
+        <span>30 gold</span>
+        <button class="mini-btn buy" id="buy-cap">Buy</button>
+      </div>
+      <div class="shop-row">
+        <div><strong>Leather Boots</strong><div class="shop-desc">Boots, +2 AGI.</div></div>
+        <span>30 gold</span>
+        <button class="mini-btn buy" id="buy-boots">Buy</button>
+      </div>
+      <div class="shop-row">
+        <div><strong>Lucky Charm</strong><div class="shop-desc">Accessory, +5% crit chance.</div></div>
+        <span>50 gold</span>
+        <button class="mini-btn buy" id="buy-charm">Buy</button>
+      </div>
+      <div class="shop-row">
+        <div><strong>Spectral Charm</strong><div class="shop-desc">Accessory, magic-aligned. Lets your attacks harm physically-immune foes.</div></div>
+        <span>60 gold</span>
+        <button class="mini-btn buy" id="buy-spectral">Buy</button>
+      </div>
+      <div id="shop-sell-section"></div>
+      <div id="shop-message"></div>
     </div>
-    <div class="shop-row">
-      <div><strong>Leather Armor</strong><div class="shop-desc">Armor, +3 DEF.</div></div>
-      <span>50 gold</span>
-      <button class="mini-btn buy" id="buy-leather">Buy</button>
-    </div>
-    <div class="shop-row">
-      <div><strong>Iron Sword</strong><div class="shop-desc">Weapon, +5 ATK.</div></div>
-      <span>80 gold</span>
-      <button class="mini-btn buy" id="buy-sword">Buy</button>
-    </div>
-    <div class="shop-row">
-      <div><strong>Leather Cap</strong><div class="shop-desc">Helmet, +2 DEF.</div></div>
-      <span>30 gold</span>
-      <button class="mini-btn buy" id="buy-cap">Buy</button>
-    </div>
-    <div class="shop-row">
-      <div><strong>Leather Boots</strong><div class="shop-desc">Boots, +2 AGI.</div></div>
-      <span>30 gold</span>
-      <button class="mini-btn buy" id="buy-boots">Buy</button>
-    </div>
-    <div class="shop-row">
-      <div><strong>Lucky Charm</strong><div class="shop-desc">Accessory, +5% crit chance.</div></div>
-      <span>50 gold</span>
-      <button class="mini-btn buy" id="buy-charm">Buy</button>
-    </div>
-    <div class="shop-row">
-      <div><strong>Spectral Charm</strong><div class="shop-desc">Accessory, magic-aligned. Lets your attacks harm physically-immune foes.</div></div>
-      <span>60 gold</span>
-      <button class="mini-btn buy" id="buy-spectral">Buy</button>
-    </div>
-    <div id="shop-sell-section"></div>
-    <div id="shop-footer">
+    <div id="shop-footer" class="modal-footer">
       <span>Gold: <strong id="shop-gold">0</strong></span>
       <button class="mini-btn" id="close-shop">Close</button>
     </div>
@@ -388,10 +672,15 @@
 </div>
 
 <div id="floor-select-overlay">
-  <div id="floor-select-modal">
-    <h2>Floor Selection</h2>
-    <div id="floor-select-note">Choose an unlocked floor to begin a run.</div>
-    <div id="floor-buttons"></div>
+  <div id="floor-select-modal" role="dialog" aria-modal="true" aria-labelledby="floor-select-title">
+    <h2 id="floor-select-title">Floor Selection</h2>
+    <div class="modal-body">
+      <div id="floor-select-note">Choose an unlocked floor to begin a run.</div>
+      <div id="floor-buttons"></div>
+    </div>
+    <div class="modal-footer" id="floor-select-footer">
+      <button class="mini-btn" id="close-floor-select">Close</button>
+    </div>
   </div>
 </div>
 
@@ -399,35 +688,27 @@
   <div id="camp-dashboard">
     <h1 id="camp-title">TOWER OF TRIALS</h1>
     <div id="camp-tagline">A quiet fire burns before the next climb.</div>
-    <div id="camp-snapshot"></div>
-    <div id="camp-equipment"></div>
+    <div id="camp-body">
+      <div id="camp-snapshot"></div>
+      <div id="camp-equipment"></div>
+    </div>
     <div id="camp-actions">
       <button class="camp-action primary" id="camp-enter-tower">Enter Tower</button>
       <button class="camp-action" id="camp-shop">Shop</button>
       <button class="camp-action" id="camp-bag">Bag</button>
       <button class="camp-action" id="camp-stats">Stats</button>
       <button class="camp-action" id="camp-rest">Rest at Campfire</button>
+      <button class="camp-action" id="camp-ngplus" style="display:none">New Game +</button>
     </div>
     <div id="camp-message"></div>
   </div>
 </div>
 
-<div id="loot-overlay">
-  <div id="loot-modal">
-    <h2>Equipment Drop</h2>
-    <div id="loot-message"></div>
-    <div id="loot-actions">
-      <button class="mini-btn buy" id="loot-equip">Yes</button>
-      <button class="mini-btn" id="loot-keep">No</button>
-    </div>
-  </div>
-</div>
-
 <div id="bag-overlay">
-  <div id="bag-modal">
-    <h2>🎒 Inventory</h2>
-    <div id="bag-content"></div>
-    <div id="bag-footer">
+  <div id="bag-modal" role="dialog" aria-modal="true" aria-labelledby="bag-title">
+    <h2 id="bag-title">🎒 Inventory</h2>
+    <div class="modal-body" id="bag-content"></div>
+    <div id="bag-footer" class="modal-footer">
       <button class="mini-btn sell" id="btn-sell-all">Sell All</button>
       <button class="mini-btn" id="close-bag">Close</button>
     </div>
@@ -435,20 +716,34 @@
 </div>
 
 <div id="stats-overlay">
-  <div id="stats-modal">
-    <h2>Adventure Stats</h2>
-    <div id="stats-content"></div>
-    <div id="stats-footer">
+  <div id="stats-modal" role="dialog" aria-modal="true" aria-labelledby="stats-title">
+    <h2 id="stats-title">Adventure Stats</h2>
+    <div class="modal-body" id="stats-content"></div>
+    <div id="stats-footer" class="modal-footer">
       <button class="mini-btn" id="close-stats">Close</button>
     </div>
   </div>
 </div>
 
+<div id="ngplus-overlay">
+  <div id="ngplus-modal">
+    <h1>New Game Plus Unlocked</h1>
+    <p>Begin again with a permanent +10% boost to your base stats for each NG+ tier. Monsters grow stronger too.</p>
+    <p>This is optional — you may return to camp and choose it anytime.</p>
+    <div id="ngplus-actions">
+      <button id="ngplus-start">Begin New Game +</button>
+      <button id="ngplus-camp">Return to Camp</button>
+    </div>
+  </div>
+</div>
+
 <div id="skill-choice-overlay">
-  <div id="skill-choice-modal">
-    <h2>Level 30: Choose Your Skill Branch</h2>
-    <p style="color:#bdc3c7;margin-bottom:16px;font-size:0.95rem;">Select one permanent skill. This choice cannot be changed.</p>
-    <div id="skill-options"></div>
+  <div id="skill-choice-modal" role="dialog" aria-modal="true" aria-labelledby="skill-choice-title">
+    <h2 id="skill-choice-title">Level 30: Choose Your Skill Branch</h2>
+    <div class="modal-body">
+      <p style="color:#bdc3c7;margin-bottom:16px;font-size:0.95rem;">Select one permanent skill. This choice cannot be changed.</p>
+      <div id="skill-options"></div>
+    </div>
   </div>
 </div>
 
@@ -467,7 +762,7 @@ const ACCESSORY_DROP_CHANCE = 0.05;
 const EPIC_DROP_CHANCE = 0.06;
 const MAX_FLOOR = 30;
 const SAVE_KEY = 'swordsmanRpgSave';
-const SAVE_VERSION = 5;
+const SAVE_VERSION = 6;
 const EQUIPMENT_SLOTS = ['weapon', 'armor', 'helmet', 'boots', 'accessory'];
 const MAX_BAG_SLOTS = 5;
 const MAX_POTION_STACK = 10;
@@ -476,8 +771,44 @@ const RARITY_UNCOMMON = 'uncommon';
 const RARITY_RARE = 'rare';
 const RARITY_EPIC = 'epic';
 const RARITY_RANK = { common: 0, uncommon: 1, rare: 2, epic: 3 };
-const MULTI_ENEMY_CHANCE = 0.30;
 const MINI_BOSS_MULTI_CHANCE = 0.05;
+
+function getMultiEnemyChance(floor) {
+  if (floor <= 4) return 0.08;
+  if (floor <= 9) return 0.10;
+  if (floor <= 14) return 0.12;
+  return 0.15;
+}
+
+const SPRITES = {
+  goblin:          { base: 'sprite-goblin' },
+  slime:           { base: 'sprite-slime', split: 'fx-spawn' },
+  wolf:            { base: 'sprite-wolf' },
+  orc:             { base: 'sprite-orc' },
+  ogre:            { base: 'sprite-boss' },
+  giantSpider:     { base: 'sprite-unknown' },
+  skeletonKnight:  { base: 'sprite-undead' },
+  minotaur:        { base: 'sprite-boss' },
+  wraith:          { base: 'sprite-undead' },
+  griffin:         { base: 'sprite-wyrm' },
+  ogreLord:        { base: 'sprite-miniboss' },
+  basilisk:        { base: 'sprite-wyrm' },
+  lesserWyvern:    { base: 'sprite-wyrm' },
+  chimera:         { base: 'sprite-boss' },
+  stoneGolem:      { base: 'sprite-golem' },
+  darkElfAssassin: { base: 'sprite-goblin' },
+  wyvern:          { base: 'sprite-wyrm' },
+  lich:            { base: 'sprite-undead' },
+  armoredBehemoth: { base: 'sprite-boss' },
+  ancientDragon:   { base: 'sprite-dragon' }
+};
+
+function spriteInfoForMonster(m) {
+  if (m && m.templateKey && SPRITES[m.templateKey]) return SPRITES[m.templateKey];
+  if (m && m.isMini && SPRITES.slime) return SPRITES.slime;
+  if (m && m.isBoss) return { base: 'sprite-boss' };
+  return { base: 'sprite-unknown' };
+}
 
 const MONSTER_TEMPLATES = {
   goblin: { name: 'Goblin', rank: 'H', hp: 30, atk: 8, def: 3, exp: 5, gold: 3 },
@@ -581,6 +912,7 @@ let player = {
   bag: createEmptyBag(),
   skillChoice: null,
   ultimateChoice: null,
+  ngPlus: 0,
   stats: { kills: 0, goldEarned: 0, deaths: 0, floorsCleared: 0 }
 };
 
@@ -588,10 +920,8 @@ let monsters = [];
 let tower = {
   floor: 1, phase: 'ready', currentIndex: 0,
   floorPlan: [...FLOOR_PLANS[1]], moreComing: false,
-  highestFloorReached: 1, unlockedFloors: [1]
+  highestFloorReached: 1, unlockedFloors: [1], ngCleared: false
 };
-let pendingLootKey = null;
-let pendingLootQueue = [];
 let pendingSkillChoice = false;
 let pendingUltimateChoice = false;
 
@@ -763,6 +1093,7 @@ function saveGame() {
         bag: player.bag.map(s => s ? { ...s } : null),
         skillChoice: player.skillChoice,
         ultimateChoice: player.ultimateChoice,
+        ngPlus: player.ngPlus || 0,
         stats: { ...player.stats }
       },
       monsters: monsters.map(m => ({ ...m })),
@@ -822,6 +1153,7 @@ function loadGame() {
     player.equipmentRarity = normalizeSlots(saveData.player.equipmentRarity || {});
     player.skillChoice = saveData.player.skillChoice || null;
     player.ultimateChoice = saveData.player.ultimateChoice || null;
+    player.ngPlus = saveData.player.ngPlus || 0;
     player.stats = saveData.player.stats || { kills: 0, goldEarned: 0, deaths: 0, floorsCleared: 0 };
 
     if (saveData.version < 4) {
@@ -848,6 +1180,7 @@ function loadGame() {
     tower.highestFloorReached = saveData.tower?.highestFloorReached || Math.max(1, tower.floor || 1);
     tower.unlockedFloors = normalizeUnlockedFloors(saveData.tower?.unlockedFloors, tower.highestFloorReached);
     tower.moreComing = !!tower.moreComing;
+    tower.ngCleared = !!saveData.tower?.ngCleared;
 
     recalcHp();
     player.hp = Math.max(0, Math.min(player.hp, player.maxHp));
@@ -931,6 +1264,7 @@ function initPlayer() {
   player.bag[0] = { type: 'potion', count: 1 };
   player.skillChoice = null;
   player.ultimateChoice = null;
+  player.ngPlus = 0;
   player.stats = { kills: 0, goldEarned: 0, deaths: 0, floorsCleared: 0 };
   recalcHp();
 }
@@ -956,10 +1290,10 @@ function levelUp() {
     if (oldLevel < POWER_STRIKE_LEVEL && player.level >= POWER_STRIKE_LEVEL) {
       log('New skill unlocked: Power Strike!', 'levelup');
     }
-    if (player.level === SKILL_CHOICE_LEVEL && !player.skillChoice) {
+    if (player.level >= SKILL_CHOICE_LEVEL && !player.skillChoice) {
       pendingSkillChoice = true;
     }
-    if (player.level === ULTIMATE_SKILL_LEVEL && player.skillChoice && !player.ultimateChoice) {
+    if (player.level >= ULTIMATE_SKILL_LEVEL && player.skillChoice && !player.ultimateChoice) {
       pendingUltimateChoice = true;
     }
     needed = expNeeded(player.level);
@@ -1038,6 +1372,13 @@ function chooseUltimate(pathKey) {
   saveGame();
 }
 
+function checkPendingSkillChoices() {
+  if (!player.skillChoice && player.level >= SKILL_CHOICE_LEVEL) pendingSkillChoice = true;
+  if (player.skillChoice && !player.ultimateChoice && player.level >= ULTIMATE_SKILL_LEVEL) pendingUltimateChoice = true;
+  if (pendingSkillChoice) { showSkillChoice(); return; }
+  if (pendingUltimateChoice) { showUltimateChoice(); return; }
+}
+
 /* ── Gear Summary ──────────────────────────────────── */
 function renderGearSummary() {
   const summary = document.getElementById('gear-summary');
@@ -1092,13 +1433,18 @@ function setupFloor(floor) {
 }
 
 function showFloorSelection() {
-  hideCamp(); renderFloorSelection(); closeShop(); closeLootPrompt(); closeBag();
+  hideCamp(); renderFloorSelection(); closeShop(); closeBag();
   document.getElementById('floor-select-overlay').classList.add('active');
   disableButtons(false);
 }
 
 function hideFloorSelection() {
   document.getElementById('floor-select-overlay').classList.remove('active');
+}
+
+function closeFloorSelection() {
+  hideFloorSelection();
+  showCamp('Choose a floor whenever you are ready to climb.');
 }
 
 function renderCamp(message) {
@@ -1110,7 +1456,8 @@ function renderCamp(message) {
     ['DEF', getTotalDef()],
     ['Gold', player.gold],
     ['Potions', getTotalPotions()],
-    ['Highest Floor', tower.highestFloorReached]
+    ['Highest Floor', tower.highestFloorReached],
+    ['NG+', player.ngPlus > 0 ? player.ngPlus : '—']
   ].map(([label, value]) => '<div class="camp-stat">' + label + '<strong>' + value + '</strong></div>').join('');
 
   const equipment = document.getElementById('camp-equipment');
@@ -1121,6 +1468,8 @@ function renderCamp(message) {
     const value = item ? '<span class="item-name ' + rarityColor + '">' + item.name + ' (' + item.statText + ')</span>' : 'None equipped';
     return '<div class="camp-gear-line">' + formatSlotLabel(slot) + ': ' + value + '</div>';
   }).join('') + renderSkillTreePreview();
+  document.getElementById('camp-ngplus').style.display = tower.ngCleared ? '' : 'none';
+  document.getElementById('camp-rest').disabled = player.hp >= player.maxHp;
   if (message !== undefined) document.getElementById('camp-message').textContent = message;
 }
 
@@ -1137,7 +1486,7 @@ function renderSkillTreePreview() {
 }
 
 function showCamp(message) {
-  hideFloorSelection(); closeShop(); closeLootPrompt(); closeBag();
+  hideFloorSelection(); closeShop(); closeBag();
   renderCamp(message || 'The campfire is warm. Prepare for your next climb.');
   document.getElementById('camp-overlay').classList.add('active');
   disableButtons(false);
@@ -1176,8 +1525,8 @@ function renderFloorSelection() {
     8: ['Floor 8', 'E-rank, very hard - recommended level 8+.'],
     9: ['Floor 9', 'E-rank gauntlet - recommended level 9+.'],
     10: ['Floor 10', 'E-rank Boss Minotaur - recommended level 10+.'],
-    11: ['Floor 11', 'E-rank, deadly - recommended level 15+.'],
-    12: ['Floor 12', 'E-rank, deadly - recommended level 15+.'],
+    11: ['Floor 11', 'E-rank, deadly - recommended level 15+. Wraiths immune to physical attacks - bring magic!'],
+    12: ['Floor 12', 'E-rank, deadly - recommended level 15+. Wraiths immune to physical attacks - bring magic!'],
     13: ['Floor 13', 'D-rank, infernal - recommended level 20+.'],
     14: ['Floor 14', 'D-rank, infernal - recommended level 20+.'],
     15: ['Floor 15', 'D-rank Boss Chimera - recommended level 25+.'],
@@ -1227,21 +1576,27 @@ function spawnCurrentFloorMonsters() {
   if (!baseKey) { clearFloor(); return; }
   loadMonsterFromTemplate(baseKey);
   const tmpl = MONSTER_TEMPLATES[baseKey];
-  const multiChance = tmpl.tier === 'miniBoss' ? MINI_BOSS_MULTI_CHANCE : MULTI_ENEMY_CHANCE;
+  const multiChance = tmpl.tier === 'miniBoss' ? MINI_BOSS_MULTI_CHANCE : getMultiEnemyChance(tower.floor);
   if (Math.random() < multiChance && !tmpl.isBoss) {
     loadMonsterFromTemplate(baseKey);
     log('Floor ' + tower.floor + ' battle ' + (tower.currentIndex + 1) + '/' + tower.floorPlan.length + ': ' + monsters[0].name + ' x2 appear! (HP ' + monsters[0].hp + ' each)', 'enemy');
   } else {
     log('Floor ' + tower.floor + ' battle ' + (tower.currentIndex + 1) + '/' + tower.floorPlan.length + ': ' + monsters[0].name + ' appears! (HP ' + monsters[0].hp + ')', 'enemy');
   }
+  if (monsters.some(m => m.immunePhysical) && !playerHasMagicGear()) {
+    log('Warning: this foe is immune to physical attacks! Equip a magic item (Spectral Charm) or Flee.', 'system');
+  }
 }
 
 function loadMonsterFromTemplate(key) {
   const tmpl = MONSTER_TEMPLATES[key];
   const rarity = getRandomRarity();
+  const hpMult = 1 + 0.15 * (player.ngPlus || 0);
+  const atkMult = 1 + 0.10 * (player.ngPlus || 0);
   const m = {
     templateKey: key, name: tmpl.name, rank: tmpl.rank,
-    maxHp: tmpl.hp, hp: tmpl.hp, atk: tmpl.atk, def: tmpl.def,
+    maxHp: Math.round(tmpl.hp * hpMult), hp: Math.round(tmpl.hp * hpMult),
+    atk: Math.round(tmpl.atk * atkMult), def: tmpl.def,
     expReward: tmpl.exp, goldReward: tmpl.gold,
     splits: tmpl.splits || false, isMini: false, isBoss: tmpl.isBoss || false,
     immunePhysical: tmpl.immunePhysical || false,
@@ -1263,10 +1618,12 @@ function loadMonsterFromTemplate(key) {
 
 function spawnMiniSlime() {
   const p = MONSTER_TEMPLATES.slime;
+  const hpMult = 1 + 0.15 * (player.ngPlus || 0);
+  const atkMult = 1 + 0.10 * (player.ngPlus || 0);
   const m = {
     templateKey: 'slime', name: 'Mini-Slime', rank: 'H',
-    maxHp: Math.floor(p.hp / 2), hp: Math.floor(p.hp / 2),
-    atk: p.atk, def: p.def,
+    maxHp: Math.floor(Math.round(p.hp * hpMult) / 2), hp: Math.floor(Math.round(p.hp * hpMult) / 2),
+    atk: Math.round(p.atk * atkMult), def: p.def,
     expReward: 0, goldReward: 0,
     splits: false, isMini: true, isBoss: false,
     immunePhysical: false, diveDef: 1, enrage: false, enraged: false,
@@ -1283,12 +1640,46 @@ function clearFloor() {
   monsters = []; player.guardActive = false; player.guardCounterReady = false;
   if (tower.floor >= MAX_FLOOR) {
     tower.moreComing = true;
+    tower.ngCleared = true;
     log('The tower yields. The Dragon awakens... and falls. The tower\'s true depths await in a future update. Your journey is far from over.', 'levelup');
   } else {
     log('Floor ' + tower.floor + ' cleared. Rest or push deeper.', 'levelup');
   }
   updateTowerUI(); updateStats(); disableButtons(false); saveGame();
-  if (tower.floor >= MAX_FLOOR) showCamp('Victory! Floor ' + MAX_FLOOR + ' is cleared. The tower\'s true depths await in a future update. Your journey is far from over.');
+  if (tower.floor >= MAX_FLOOR) {
+    document.getElementById('ngplus-overlay').classList.add('active');
+  }
+}
+
+function startNewGamePlus() {
+  const keptStats = { ...player.stats };
+  player.ngPlus = (player.ngPlus || 0) + 1;
+  initPlayer();
+  player.stats = keptStats;
+  const mult = 1 + 0.10 * player.ngPlus;
+  player.atk = Math.round(12 * mult);
+  player.agi = Math.round(10 * mult);
+  player.def = Math.round(8 * mult);
+  player.vit = Math.round(50 * mult);
+  recalcHp();
+  player.hp = player.maxHp;
+  tower = {
+    floor: 1, phase: 'select', currentIndex: 0,
+    floorPlan: getFloorPlan(1), moreComing: false,
+    highestFloorReached: 1, unlockedFloors: [1], ngCleared: true
+  };
+  monsters = [];
+  document.getElementById('ngplus-overlay').classList.remove('active');
+  hideCamp(); hideFloorSelection(); closeShop(); closeBag();
+  log('New Game + tier ' + player.ngPlus + ' begins. Base stats are permanently boosted +' + (player.ngPlus * 10) + '%.', 'levelup');
+  playSound('levelup');
+  updateStats(); updateTowerUI(); disableButtons(false); saveGame();
+  showCamp('New Game + tier ' + player.ngPlus + ' begins. Your base stats are permanently boosted.');
+}
+
+function ngplusReturnToCamp() {
+  document.getElementById('ngplus-overlay').classList.remove('active');
+  showCamp('Victory! Floor ' + MAX_FLOOR + ' is cleared. The tower\'s true depths await in a future update. Your journey is far from over.');
 }
 
 function restAfterFloor() {
@@ -1312,6 +1703,16 @@ function retreatToSelection() {
   monsters = [];
   log('You retreat from the tower and recover to full HP.', 'heal');
   updateStats(); updateTowerUI(); saveGame(); showCamp('You return to camp, rested and ready.');
+}
+
+function doFlee() {
+  if (tower.phase !== 'combat' || player.hp <= 0) return;
+  log('You flee the battle and slip back down the stairs.', 'system');
+  tower.phase = 'select'; tower.currentIndex = 0;
+  tower.floorPlan = getFloorPlan(Math.min(tower.floor, MAX_FLOOR));
+  monsters = [];
+  updateTowerUI(); updateStats(); disableButtons(false); saveGame();
+  showFloorSelection();
 }
 
 /* ── Death ─────────────────────────────────────────── */
@@ -1350,55 +1751,62 @@ function awardMonsterRewards(defeatedMonster) {
 function handleMonsterDeath(monsterIndex) {
   if (monsterIndex < 0 || monsterIndex >= monsters.length) return;
   const defeatedMonster = { ...monsters[monsterIndex] };
-  const shouldSplit = defeatedMonster.splits && !defeatedMonster.isMini;
+  const shouldSplit = defeatedMonster.splits && !defeatedMonster.isMini && monsters.length <= 2;
   if (!defeatedMonster.isMini) player.stats.kills++;
   awardMonsterRewards(defeatedMonster);
   tryDrops(defeatedMonster);
   levelUp();
   if (shouldSplit) {
+    monsters.splice(monsterIndex, 1);
     spawnMiniSlime();
     log('The Slime splits! A Mini-Slime appears! (HP ' + monsters[monsters.length - 1].hp + ')', 'split');
+    renderBattleStage();
+    animateMonster(monsters.length - 1, 'fx-spawn');
+  } else if (defeatedMonster.splits && !defeatedMonster.isMini) {
+    log('The Slime quivers but fails to split!', 'system');
+    monsters.splice(monsterIndex, 1);
   } else {
     monsters.splice(monsterIndex, 1);
     if (monsters.length === 0) {
       tower.currentIndex++;
       if (defeatedMonster.isBoss && defeatedMonster.name === 'Ogre') {
         log("Boss loot! The Ogre drops Chainmail, an Iron Helm, Iron Greaves, and a Warrior's Ring.", 'loot');
-        receiveEquipment('chainmail', true);
-        receiveEquipment('ironHelm', true);
-        receiveEquipment('ironGreaves', true);
-        receiveEquipment('warriorsRing', true);
+        receiveEquipment('chainmail');
+        receiveEquipment('ironHelm');
+        receiveEquipment('ironGreaves');
+        receiveEquipment('warriorsRing');
       }
       if (defeatedMonster.isBoss && defeatedMonster.name === 'Minotaur') {
-        log('Boss loot! The Minotaur drops a Steel Sword and a Guardian Amulet.', 'loot');
-        receiveEquipment('steelSword', true);
-        receiveEquipment('guardianAmulet', true);
+        log('Boss loot! The Minotaur drops a Steel Sword, a Guardian Amulet, and a Spectral Charm.', 'loot');
+        receiveEquipment('steelSword');
+        receiveEquipment('guardianAmulet');
+        receiveEquipment('spectralCharm');
       }
       if (defeatedMonster.isBoss && defeatedMonster.name === 'Chimera') {
         log('Boss loot! The Chimera drops a Steel Sword and a Guardian Amulet.', 'loot');
-        receiveEquipment('steelSword', true);
-        receiveEquipment('guardianAmulet', true);
+        receiveEquipment('steelSword');
+        receiveEquipment('guardianAmulet');
       }
       if (defeatedMonster.isBoss && defeatedMonster.name === 'Wyvern') {
         log('Boss loot! The Wyvern drops a Steel Sword and a Dragonscale Plate.', 'loot');
-        receiveEquipment('steelSword', true);
-        receiveEquipment('dragonscalePlate', true);
+        receiveEquipment('steelSword');
+        receiveEquipment('dragonscalePlate');
       }
       if (defeatedMonster.isBoss && defeatedMonster.name === 'Lich') {
         log('Boss loot! The Lich drops a Guardian Amulet and a Dragon Helm.', 'loot');
-        receiveEquipment('guardianAmulet', true);
-        receiveEquipment('dragonHelm', true);
+        receiveEquipment('guardianAmulet');
+        receiveEquipment('dragonHelm');
       }
       if (defeatedMonster.isBoss && defeatedMonster.name === 'Armored Behemoth') {
         log('Boss loot! The Armored Behemoth drops a Dragonscale Plate and a Dragon Helm.', 'loot');
-        receiveEquipment('dragonscalePlate', true);
-        receiveEquipment('dragonHelm', true);
+        receiveEquipment('dragonscalePlate');
+        receiveEquipment('dragonHelm');
       }
       if (defeatedMonster.isBoss && defeatedMonster.name === 'Ancient Dragon') {
         log('Boss loot! The Ancient Dragon drops a Steel Sword, a Dragonscale Plate, and a Dragon Helm!', 'loot');
-        receiveEquipment('steelSword', true);
-        receiveEquipment('dragonscalePlate', true);
-        receiveEquipment('dragonHelm', true);
+        receiveEquipment('steelSword');
+        receiveEquipment('dragonscalePlate');
+        receiveEquipment('dragonHelm');
       }
       if (tower.currentIndex >= tower.floorPlan.length) clearFloor();
       else spawnCurrentFloorMonsters();
@@ -1419,56 +1827,56 @@ function tryDrops(defeatedMonster) {
     const rarity = getRandomRarity();
     const bonus = generateRarityBonus(rarity, 'leatherArmor');
     log(rarityDropLabel(rarity, 'Leather Armor', defeatedMonster.name), 'loot');
-    receiveEquipment('leatherArmor', true, rarity, bonus);
+    receiveEquipment('leatherArmor', rarity, bonus);
   }
   if (tower.floor < 5 && Math.random() < BASIC_GEAR_DROP_CHANCE) {
     const rarity = getRandomRarity();
     const bonus = generateRarityBonus(rarity, 'leatherCap');
     log(rarityDropLabel(rarity, 'Leather Cap', defeatedMonster.name), 'loot');
-    receiveEquipment('leatherCap', true, rarity, bonus);
+    receiveEquipment('leatherCap', rarity, bonus);
   }
   if (tower.floor < 5 && Math.random() < BASIC_GEAR_DROP_CHANCE) {
     const rarity = getRandomRarity();
     const bonus = generateRarityBonus(rarity, 'leatherBoots');
     log(rarityDropLabel(rarity, 'Leather Boots', defeatedMonster.name), 'loot');
-    receiveEquipment('leatherBoots', true, rarity, bonus);
+    receiveEquipment('leatherBoots', rarity, bonus);
   }
   if ((tower.floor === 3 || tower.floor === 4) && Math.random() < ACCESSORY_DROP_CHANCE) {
     const rarity = getRandomRarity();
     const bonus = generateRarityBonus(rarity, 'luckyCharm');
     log(rarityDropLabel(rarity, 'Lucky Charm', defeatedMonster.name), 'loot');
-    receiveEquipment('luckyCharm', true, rarity, bonus);
+    receiveEquipment('luckyCharm', rarity, bonus);
   }
   if (tower.floor >= 6 && tower.floor < 10 && !defeatedMonster.isBoss) {
     if (Math.random() < RARE_ARMOR_DROP_CHANCE) {
       const rarity = getRandomRarity();
       const bonus = generateRarityBonus(rarity, 'ironSword');
       log(rarityDropLabel(rarity, 'Iron Sword', defeatedMonster.name), 'loot');
-      receiveEquipment('ironSword', true, rarity, bonus);
+      receiveEquipment('ironSword', rarity, bonus);
     }
     if (Math.random() < RARE_ARMOR_DROP_CHANCE) {
       const rarity = getRandomRarity();
       const bonus = generateRarityBonus(rarity, 'chainmail');
       log(rarityDropLabel(rarity, 'Chainmail', defeatedMonster.name), 'loot');
-      receiveEquipment('chainmail', true, rarity, bonus);
+      receiveEquipment('chainmail', rarity, bonus);
     }
     if (Math.random() < BASIC_GEAR_DROP_CHANCE) {
       const rarity = getRandomRarity();
       const bonus = generateRarityBonus(rarity, 'ironHelm');
       log(rarityDropLabel(rarity, 'Iron Helm', defeatedMonster.name), 'loot');
-      receiveEquipment('ironHelm', true, rarity, bonus);
+      receiveEquipment('ironHelm', rarity, bonus);
     }
     if (Math.random() < BASIC_GEAR_DROP_CHANCE) {
       const rarity = getRandomRarity();
       const bonus = generateRarityBonus(rarity, 'ironGreaves');
       log(rarityDropLabel(rarity, 'Iron Greaves', defeatedMonster.name), 'loot');
-      receiveEquipment('ironGreaves', true, rarity, bonus);
+      receiveEquipment('ironGreaves', rarity, bonus);
     }
     if (Math.random() < ACCESSORY_DROP_CHANCE) {
       const rarity = getRandomRarity();
       const bonus = generateRarityBonus(rarity, 'warriorsRing');
       log(rarityDropLabel(rarity, "Warrior's Ring", defeatedMonster.name), 'loot');
-      receiveEquipment('warriorsRing', true, rarity, bonus);
+      receiveEquipment('warriorsRing', rarity, bonus);
     }
   }
   if (tower.floor >= 11 && tower.floor < 15 && !defeatedMonster.isBoss) {
@@ -1476,19 +1884,19 @@ function tryDrops(defeatedMonster) {
       const rarity = getRandomRarity();
       const bonus = generateRarityBonus(rarity, 'steelSword');
       log(rarityDropLabel(rarity, 'Steel Sword', defeatedMonster.name), 'loot');
-      receiveEquipment('steelSword', true, rarity, bonus);
+      receiveEquipment('steelSword', rarity, bonus);
     }
     if (Math.random() < BASIC_GEAR_DROP_CHANCE) {
       const rarity = getRandomRarity();
       const bonus = generateRarityBonus(rarity, 'guardianAmulet');
       log(rarityDropLabel(rarity, 'Guardian Amulet', defeatedMonster.name), 'loot');
-      receiveEquipment('guardianAmulet', true, rarity, bonus);
+      receiveEquipment('guardianAmulet', rarity, bonus);
     }
     if (Math.random() < ACCESSORY_DROP_CHANCE) {
       const rarity = getRandomRarity();
       const bonus = generateRarityBonus(rarity, 'spectralCharm');
       log(rarityDropLabel(rarity, 'Spectral Charm', defeatedMonster.name), 'loot');
-      receiveEquipment('spectralCharm', true, rarity, bonus);
+      receiveEquipment('spectralCharm', rarity, bonus);
     }
   }
   if (tower.floor >= 21 && tower.floor <= 30 && !defeatedMonster.isBoss) {
@@ -1496,25 +1904,30 @@ function tryDrops(defeatedMonster) {
       const rarity = RARITY_EPIC;
       const bonus = generateRarityBonus(rarity, 'dragonscalePlate');
       log(rarityDropLabel(rarity, 'Dragonscale Plate', defeatedMonster.name), 'loot');
-      receiveEquipment('dragonscalePlate', true, rarity, bonus);
+      receiveEquipment('dragonscalePlate', rarity, bonus);
     }
     if (Math.random() < EPIC_DROP_CHANCE) {
       const rarity = RARITY_EPIC;
       const bonus = generateRarityBonus(rarity, 'dragonHelm');
       log(rarityDropLabel(rarity, 'Dragon Helm', defeatedMonster.name), 'loot');
-      receiveEquipment('dragonHelm', true, rarity, bonus);
+      receiveEquipment('dragonHelm', rarity, bonus);
     }
     if (Math.random() < EPIC_DROP_CHANCE) {
       const rarity = RARITY_EPIC;
       const bonus = generateRarityBonus(rarity, 'steelSword');
       log(rarityDropLabel(rarity, 'Steel Sword', defeatedMonster.name), 'loot');
-      receiveEquipment('steelSword', true, rarity, bonus);
+      receiveEquipment('steelSword', rarity, bonus);
     }
   }
 }
 
 /* ── Equipment Receive / Loot ──────────────────────── */
-function receiveEquipment(itemKey, promptWhenOccupied, rarity, bonus) {
+function itemPower(itemKey, rarity, bonus) {
+  const s = getItemStatBonus(itemKey, rarity, bonus);
+  return s.atk + s.def + s.agi + Math.round(s.crit * 100);
+}
+
+function receiveEquipment(itemKey, rarity, bonus) {
   rarity = rarity || RARITY_COMMON;
   bonus = bonus || {};
   const item = itemFromKey(itemKey);
@@ -1526,16 +1939,21 @@ function receiveEquipment(itemKey, promptWhenOccupied, rarity, bonus) {
     log('You already have ' + item.name + '.', 'loot');
     return false;
   }
-  if (!player.equipment[item.slot]) {
+  if (!ownedInSlot) {
     player.equipment[item.slot] = itemKey;
     player.equipmentRarity[item.slot] = rarity;
-    log('Auto-equipped ' + item.name + ' (' + item.statText + ').', 'loot');
+    log('Equipped ' + item.name + ' (' + item.statText + ').', 'loot');
     updateStats();
     return true;
   }
-  if (promptWhenOccupied) {
-    pendingLootQueue.push({ key: itemKey, rarity, bonus });
-    if (!pendingLootKey) showNextLootPrompt();
+  const newPower = itemPower(itemKey, rarity, bonus);
+  const oldPower = itemPower(ownedInSlot, ownedSlotRarity, {});
+  if (newPower > oldPower && !bagIsFull()) {
+    player.equipment[item.slot] = itemKey;
+    player.equipmentRarity[item.slot] = rarity;
+    addGearToBag(ownedInSlot, ownedSlotRarity, {});
+    log('Upgraded to ' + item.name + ' (' + item.statText + '). ' + ITEMS[ownedInSlot].name + ' moved to bag.', 'loot');
+    updateStats();
     return true;
   }
   if (addGearToBag(itemKey, rarity, bonus)) {
@@ -1546,56 +1964,9 @@ function receiveEquipment(itemKey, promptWhenOccupied, rarity, bonus) {
   return false;
 }
 
-function queueLootPrompt(itemKey, rarity, bonus) {
-  pendingLootQueue.push({ key: itemKey, rarity, bonus });
-  if (!pendingLootKey) showNextLootPrompt();
-}
-
-function showNextLootPrompt() {
-  const pending = pendingLootQueue.shift();
-  if (!pending) { closeLootPrompt(); pendingLootKey = null; return; }
-  pendingLootKey = pending;
-  const item = itemFromKey(pending.key);
-  document.getElementById('loot-message').textContent = 'Equip ' + item.name + ' (' + item.statText + ')?';
-  document.getElementById('loot-overlay').classList.add('active');
-}
-
-function closeLootPrompt() { document.getElementById('loot-overlay').classList.remove('active'); }
-
-function acceptLootPrompt() {
-  if (!pendingLootKey) return;
-  const item = itemFromKey(pendingLootKey.key);
-  const oldItemKey = player.equipment[item.slot];
-  player.equipment[item.slot] = pendingLootKey.key;
-  player.equipmentRarity[item.slot] = pendingLootKey.rarity;
-  if (oldItemKey) {
-    const oldRarity = player.equipmentRarity[item.slot] || RARITY_COMMON;
-    if (addGearToBag(oldItemKey, oldRarity, {})) {
-      log(ITEMS[oldItemKey].name + ' moved to bag.', 'loot');
-    } else {
-      log(ITEMS[oldItemKey].name + ' was lost (bag full).', 'loot');
-    }
-  }
-  log('Equipped ' + item.name + ' (' + item.statText + ').', 'loot');
-  pendingLootKey = null;
-  updateStats(); saveGame(); showNextLootPrompt();
-}
-
-function declineLootPrompt() {
-  if (!pendingLootKey) return;
-  const item = itemFromKey(pendingLootKey.key);
-  if (addGearToBag(pendingLootKey.key, pendingLootKey.rarity, pendingLootKey.bonus)) {
-    log(item.name + ' added to bag.', 'loot');
-  } else {
-    log(item.name + ' was left behind (bag full).', 'loot');
-  }
-  pendingLootKey = null;
-  saveGame(); showNextLootPrompt();
-}
-
 /* ── Bag UI ────────────────────────────────────────── */
 function openBag() {
-  closeShop(); closeLootPrompt();
+  closeShop();
   renderBagUI();
   document.getElementById('bag-overlay').classList.add('active');
 }
@@ -1603,7 +1974,7 @@ function openBag() {
 function closeBag() { document.getElementById('bag-overlay').classList.remove('active'); }
 
 function openStats() {
-  closeShop(); closeBag(); closeLootPrompt();
+  closeShop(); closeBag();
   const s = player.stats;
   document.getElementById('stats-content').innerHTML = [
     ['Monsters Slain', s.kills],
@@ -1750,37 +2121,50 @@ function sellAllBag() {
 /* ── Shop ──────────────────────────────────────────── */
 function buyPotion() {
   if (player.gold < SHOP_ITEMS.potion.cost) {
+    shopNotify('Not enough gold for a Health Potion.', 'fail');
     log('Not enough gold for a Health Potion.', 'system'); return;
   }
   if (!addPotionToBag()) {
+    shopNotify('Bag is full — cannot buy a Health Potion.', 'fail');
     log('Bag is full. Cannot buy Health Potion.', 'system'); return;
   }
   player.gold -= SHOP_ITEMS.potion.cost;
+  shopNotify('Bought a Health Potion.', 'success');
   log('Bought a Health Potion.', 'heal');
-updateStats(); updateShopUI(); saveGame();
+  updateStats(); updateShopUI(); saveGame();
 }
 
 function buyEquipment(itemKey) {
   const item = itemFromKey(itemKey);
   const cost = SHOP_ITEMS[itemKey].cost;
   if (player.gold < cost) {
+    shopNotify('Not enough gold for ' + item.name + '.', 'fail');
     log('Not enough gold for ' + item.name + '.', 'system'); return;
   }
-  const ownedSlotRarityB = player.equipmentRarity[item.slot] || RARITY_COMMON;
-  if (player.equipment[item.slot] === itemKey && (RARITY_RANK[ownedSlotRarityB] || 0) >= RARITY_RANK.common && !bagHasGear(itemKey)) {
-    log('You already have ' + item.name + '.', 'system'); return;
-  }
   if (player.equipment[item.slot] && bagIsFull()) {
+    shopNotify('Bag is full — sell something before buying ' + item.name + '.', 'fail');
     log('No room for ' + item.name + '. Bag is full.', 'system'); return;
   }
+  if (!receiveEquipment(itemKey, RARITY_COMMON, {})) {
+    shopNotify('You already have ' + item.name + ' equipped.', 'fail');
+    log('You already have ' + item.name + '.', 'system'); return;
+  }
   player.gold -= cost;
-  receiveEquipment(itemKey, false, RARITY_COMMON, {});
+  shopNotify('Bought ' + item.name + ' for ' + cost + ' gold.', 'success');
   updateStats(); updateShopUI(); saveGame();
+}
+
+function shopNotify(msg, kind) {
+  const el = document.getElementById('shop-message');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = kind || '';
 }
 
 function openShop() {
   closeBag();
   updateShopUI();
+  shopNotify('');
   document.getElementById('shop-overlay').classList.add('active');
 }
 
@@ -1848,6 +2232,7 @@ function updateStats() {
 
   const totalPotions = getTotalPotions();
   document.getElementById('st-potions').textContent = totalPotions;
+  document.getElementById('st-ngplus').textContent = player.ngPlus > 0 ? player.ngPlus : '—';
   document.getElementById('st-exp').textContent = player.exp;
   const neededExp = expNeeded(player.level);
   document.getElementById('st-expneed').textContent = neededExp;
@@ -1896,6 +2281,7 @@ function updateStats() {
 }
 
 function updateTowerUI() {
+  renderBattleStage();
   document.getElementById('floor-title').textContent = tower.phase === 'select' ? 'Tower of Trials - Floor Selection' : (tower.moreComing ? 'Tower of Trials - Floor ' + MAX_FLOOR + ' Cleared' : 'Tower of Trials - Floor ' + tower.floor);
   const floorSubtitle = document.getElementById('floor-subtitle');
   const preview = document.getElementById('floor-preview');
@@ -1929,6 +2315,61 @@ function updateTowerUI() {
   }
 }
 
+/* ── Battle Stage ──────────────────────────────────── */
+const _pendingMonsterFx = new Map();
+
+function renderBattleStage() {
+  const row = document.getElementById('monster-row');
+  if (!row) return;
+  if (tower.phase !== 'combat' || monsters.length === 0) {
+    _pendingMonsterFx.clear();
+    row.innerHTML = '';
+    return;
+  }
+  row.innerHTML = monsters.map((m, i) => {
+    const info = spriteInfoForMonster(m);
+    const hpPct = m.maxHp > 0 ? Math.max(0, Math.min(100, (m.hp / m.maxHp) * 100)) : 0;
+    return '<div class="monster-card" id="monster-card-' + i + '">' +
+      '<div class="sprite ' + info.base + '"></div>' +
+      '<div class="fighter-name">' + m.name + '</div>' +
+      '<div class="monster-hp-mini"><div class="monster-hp-mini-fill" style="width:' + hpPct + '%"></div></div>' +
+      '</div>';
+  }).join('');
+  _pendingMonsterFx.forEach((fxSet, idx) => {
+    fxSet.forEach(fx => _armCardFx(document.getElementById('monster-card-' + idx), idx, fx));
+  });
+}
+
+function _armCardFx(card, index, fxName) {
+  if (!card) return;
+  card.classList.remove(fxName);
+  void card.offsetWidth;
+  card.classList.add(fxName);
+  const clear = () => {
+    card.classList.remove(fxName);
+    const set = _pendingMonsterFx.get(index);
+    if (set) { set.delete(fxName); if (set.size === 0) _pendingMonsterFx.delete(index); }
+  };
+  card.addEventListener('animationend', clear, { once: true });
+  setTimeout(clear, 800);
+}
+
+function animateFighter(el, fxName) {
+  if (!el || !fxName) return;
+  el.classList.remove(fxName);
+  void el.offsetWidth;
+  el.classList.add(fxName);
+  const clear = () => el.classList.remove(fxName);
+  el.addEventListener('animationend', clear, { once: true });
+  setTimeout(clear, 800);
+}
+
+function animateMonster(index, fxName) {
+  if (!_pendingMonsterFx.has(index)) _pendingMonsterFx.set(index, new Set());
+  _pendingMonsterFx.get(index).add(fxName);
+  _armCardFx(document.getElementById('monster-card-' + index), index, fxName);
+}
+
 function log(msg, cls) {
   const logEl = document.getElementById('combat-log');
   const entry = document.createElement('div');
@@ -1953,6 +2394,8 @@ function disableButtons(resolving) {
   document.getElementById('btn-push').disabled = resolving || tower.phase !== 'cleared' || tower.floor >= MAX_FLOOR;
   document.getElementById('btn-retreat').disabled = resolving || !retreatEligible;
   document.getElementById('btn-retreat').style.display = retreatEligible ? '' : 'none';
+  document.getElementById('btn-flee').disabled = resolving || !inCombat;
+  document.getElementById('btn-flee').style.display = inCombat ? '' : 'none';
   document.getElementById('btn-shop').disabled = resolving || inCombat;
   const btnBag = document.getElementById('btn-bag');
   btnBag.disabled = resolving || inCombat;
@@ -2020,12 +2463,17 @@ function applyPlayerDamage(dmg, skillName, isCrit, targets) {
   if (isCrit) { log('CRITICAL! ' + msg, 'crit'); playSound('crit'); }
   else { log(msg, 'dealt'); playSound('attack'); }
   updateTowerUI();
+  const playerEl = document.getElementById('player-sprite');
+  animateFighter(playerEl, 'anim-attack');
+  targets.forEach(idx => animateMonster(idx, 'fx-hit'));
   return killed;
 }
 
 function monsterTurn() {
   if (monsters.length === 0 || player.hp <= 0) return true;
+  const playerEl = document.getElementById('player-sprite');
   monsters.forEach((m, idx) => {
+    if (m.hp <= 0) return;
     if (m.petrified) { log(m.name + ' is petrified and cannot act.', 'system'); return; }
     if (m.fireBreathCounter > 0) {
       m.fireBreathCounter--;
@@ -2034,6 +2482,8 @@ function monsterTurn() {
       player.hp -= dmg;
       log(m.name + ' breathes fire and deals ' + dmg + ' damage! (ignores DEF)', 'damage');
       playSound('hit');
+      animateMonster(idx, 'anim-attack');
+      animateFighter(playerEl, 'fx-hit');
       m.fireBreathCounter = 3;
       return;
     }
@@ -2048,6 +2498,8 @@ function monsterTurn() {
       if (player.guardActive) msg += ' (Guarded)';
       log(msg, 'damage');
       playSound('hit');
+      animateMonster(idx, 'anim-attack');
+      animateFighter(playerEl, 'fx-hit');
       if (player.guardActive && player.skillChoice === 'parry' && player.guardCounterReady) {
         const counterMult = player.ultimateRiposte ? 1.0 : 0.5;
         const counterDmg = Math.max(1, Math.round(getTotalAtk() * counterMult));
@@ -2092,6 +2544,7 @@ function endPlayerTurn(usedPowerStrike) {
   if (!usedPowerStrike && player.powerStrikeCooldown > 0) player.powerStrikeCooldown--;
   player.guardCounterReady = player.skillChoice === 'parry' && player.guardActive;
   updateStats(); updateTowerUI(); disableButtons(false); saveGame();
+  checkPendingSkillChoices();
 }
 
 function doAttack() {
@@ -2190,14 +2643,15 @@ function doUltimate() {
   const choice = player.ultimateChoice;
   if (choice === 'cleave:a') {
     const targets = monsters.map((_, i) => i);
-    let anyKilled = false;
     targets.forEach(idx => {
       if (idx < monsters.length && monsters[idx].hp > 0) {
         const dmg = Math.max(1, Math.round(playerDamageToMonster(1.2, idx)));
         applyPlayerDamage(dmg, 'Whirlwind', false, [idx]);
       }
     });
-    monsters.slice().forEach((m, idx) => { if (m.hp <= 0) { handleMonsterDeath(idx); anyKilled = true; } });
+    for (let i = monsters.length - 1; i >= 0; i--) {
+      if (monsters[i].hp <= 0) handleMonsterDeath(i);
+    }
     if (monsters.length === 0) { endPlayerTurn(false); return; }
   } else if (choice === 'cleave:b') {
     const targets = monsters.length === 1 ? [0] : [0, 1];
@@ -2233,7 +2687,7 @@ function doRestart() {
   tower = {
     floor: 1, phase: 'select', currentIndex: 0,
     floorPlan: getFloorPlan(1), moreComing: false,
-    highestFloorReached: 1, unlockedFloors: [1]
+    highestFloorReached: 1, unlockedFloors: [1], ngCleared: false
   };
   monsters = [];
   document.getElementById('combat-log').innerHTML = '';
@@ -2277,6 +2731,14 @@ document.getElementById('btn-ascend').addEventListener('click', startFloor);
 document.getElementById('btn-rest').addEventListener('click', restAfterFloor);
 document.getElementById('btn-push').addEventListener('click', pushDeeper);
 document.getElementById('btn-retreat').addEventListener('click', retreatToSelection);
+document.getElementById('btn-flee').addEventListener('click', doFlee);
+document.getElementById('sidebar-toggle').addEventListener('click', () => {
+  const collapsed = document.body.classList.toggle('sidebar-collapsed');
+  const toggle = document.getElementById('sidebar-toggle');
+  toggle.setAttribute('aria-expanded', String(!collapsed));
+  toggle.textContent = collapsed ? 'Show Stats' : 'Hide Stats';
+  toggle.title = collapsed ? 'Show player stats' : 'Hide player stats';
+});
 document.getElementById('btn-shop').addEventListener('click', openShop);
 document.getElementById('btn-bag').addEventListener('click', openBag);
 document.getElementById('buy-potion').addEventListener('click', buyPotion);
@@ -2288,9 +2750,8 @@ document.getElementById('buy-charm').addEventListener('click', () => buyEquipmen
 document.getElementById('buy-spectral').addEventListener('click', () => buyEquipment('spectralCharm'));
 document.getElementById('close-shop').addEventListener('click', closeShop);
 document.getElementById('close-bag').addEventListener('click', closeBag);
+document.getElementById('close-floor-select').addEventListener('click', closeFloorSelection);
 document.getElementById('btn-sell-all').addEventListener('click', sellAllBag);
-document.getElementById('loot-equip').addEventListener('click', acceptLootPrompt);
-document.getElementById('loot-keep').addEventListener('click', declineLootPrompt);
 document.getElementById('floor-buttons').addEventListener('click', event => {
   const button = event.target.closest('.floor-choice');
   if (!button || button.disabled || !button.dataset.floor) return;
@@ -2304,6 +2765,9 @@ document.getElementById('camp-bag').addEventListener('click', openBag);
 document.getElementById('camp-stats').addEventListener('click', openStats);
 document.getElementById('close-stats').addEventListener('click', closeStats);
 document.getElementById('camp-rest').addEventListener('click', restAtCampfire);
+document.getElementById('camp-ngplus').addEventListener('click', startNewGamePlus);
+document.getElementById('ngplus-start').addEventListener('click', startNewGamePlus);
+document.getElementById('ngplus-camp').addEventListener('click', ngplusReturnToCamp);
 
 /* ── Init ──────────────────────────────────────────── */
 if (loadGame()) {
@@ -2323,8 +2787,8 @@ if (player.hp <= 0) {
   disableButtons(false);
   showCamp('The campfire is warm. Prepare for your next climb.');
 }
-if (pendingSkillChoice) showSkillChoice();
-if (pendingUltimateChoice) showUltimateChoice();
+checkPendingSkillChoices();
+
 </script>
 </body>
 </html>

@@ -2,19 +2,39 @@
 
 A turn-based browser RPG where the Swordsman climbs the Tower of Trials.
 
-## Features (v5 Update)
+## Features (v6 Update)
 
 ### Core Gameplay
-- **Turn-based combat** with Attack, Slash, Guard, and Potion actions
-- **15 dynamic floors** with escalating difficulty and unique monsters
-- **Multi-enemy battles** (30% chance per floor to spawn 2 enemies simultaneously)
+- **Turn-based combat** with Attack, Slash, Guard, Potion, and Flee actions
+- **30 dynamic floors** with escalating difficulty and unique monsters
+- **Multi-enemy battles** (scaled chance per floor, 15% max, to spawn 2 enemies simultaneously)
 - **Equipment system** with 5 slots (weapon, armor, helmet, boots, accessory)
 - **Inventory management** with 5-slot bag and potion stacking
 - **Shop system** for buying potions and gear
 - **Camp hub** for resting and planning between floors
 - **Full save/load** with localStorage persistence
+- **Battle stage** with CSS-drawn monster sprites and combat animations (customizable)
 
-### New in v5
+### New in v6
+
+#### Difficulty Rebalance
+- Multi-enemy spawn chance now scales by floor instead of a flat 30%:
+  - Floors 1-4: 8% | Floors 5-9: 10% | Floors 10-14: 12% | Floors 15+: 15% (hard cap)
+- Slime splits now remove the dying Slime and spawn a Mini-Slime in its place, and are capped at 3 total monsters — no more 4-on-1 minislime swarms.
+
+#### New Game Plus (optional)
+- After clearing floor 30, you may choose **New Game +** — or return to camp and pick it anytime.
+- Each NG+ tier gives a **permanent +10% boost to base stats** (stackable).
+- Monsters scale too: **+15% HP and +10% ATK per tier**.
+- Floor progress resets; adventure stats (kills, deaths, gold earned) carry over.
+- NG+ tier shows in the stats panel and camp snapshot.
+
+#### Battle Stage & Sprites
+- A visual battle stage sits above the combat log with CSS-drawn placeholder sprites (no emoji).
+- Animations: idle bob, attack lunge, hit flash/shake, death fade, spawn pop-in.
+- **Fully customizable** — see [Customizing Monster Sprites](#customizing-monster-sprites).
+
+### Existing Features
 
 #### Floors 11-15
 - **Floor 11-12**: E-rank deadly monsters (Wraith, Griffin, Minotaur)
@@ -42,10 +62,11 @@ All equipment drops have random rarity tiers with stat bonuses:
 Items display rarity color in UI. Bonuses are recalculated on load from stored tier.
 
 #### Multi-Enemy Combat
-- 30% chance to spawn 2 identical monsters per floor (non-boss only)
+- Scaled chance to spawn 2 identical monsters per battle (non-boss only): 8% (F1-4), 10% (F5-9), 12% (F10-14), 15% (F15+)
 - Both monsters attack each turn
 - Cleave skill exploits this mechanic (hits both, or powers up against single)
-- Monster health displayed per enemy
+- Monster health displayed per enemy and in the battle stage
+- Slimes split into Mini-Slimes on death, but splits are capped at 3 total monsters
 
 ### Existing Features
 - **Exp & leveling** with formula: `EXP = 10 × Level^2.2`
@@ -53,15 +74,17 @@ Items display rarity color in UI. Bonuses are recalculated on load from stored t
 - **Potions**: 30 HP restore, 10% drop rate, stackable (max 10 per slot)
 - **Death penalty**: Lose 10% gold, full HP restore, keep progress
 - **Monster variety**: H, G, F, E, D rank enemies with increasing stats
-- **Boss floors**: Ogre (5), Minotaur (10), Chimera (15) with guaranteed loot
+- **Boss floors**: Ogre (5), Minotaur (10), Chimera (15) with guaranteed loot; the Minotaur also drops a Spectral Charm
 
 ## Save Format
 
-**Version 5** (backward compatible from v3+):
+**Version 6** (backward compatible from v3+):
 - Player stats, exp, gold, equipment (with rarity), bag (with rarity/bonus)
 - Monster combat state (array of active monsters)
-- Tower state (floor, phase, unlock list, highest floor reached)
+- Tower state (floor, phase, unlock list, highest floor reached, NG+ cleared flag)
 - **Skill choice** (cleave/parry/null)
+- **Ultimate choice** (cleave:a/b, parry:a/b)
+- **NG+ tier** (0 = normal run)
 - **Equipment rarity tiers** for recalculation on load
 
 ## Gameplay Tips
@@ -74,6 +97,7 @@ Items display rarity color in UI. Bonuses are recalculated on load from stored t
 - **Level 25+**: Recommended for floor 15 (Chimera boss)
 - **Level 30**: Choose permanent skill branch (Cleave or Parry)
 - **Replaying floors**: Earlier floors grant steady EXP for grinding
+- **Wraith floors (11-12)**: Wraiths are immune to physical attacks. The floor-10 Minotaur always drops a Spectral Charm (magic), so you're guaranteed magic access first. If you enter without it anyway, a warning fires and the **Flee** action (available in every battle) returns you to floor selection with no penalty — but no healing either.
 
 ## Combat Mechanics
 
@@ -93,6 +117,7 @@ Guard reduces enemy damage by 30%
 
 ### Special Mechanics
 - **Wraith**: Immune to physical (Attack, Slash, Power Strike, normal Cleave)
+- **Flee**: Leaves any battle to floor selection — keeps gold and gear, keeps current HP (rest at the campfire to heal)
 - **Griffin**: Dive attack ignores 50% DEF
 - **Ogre Lord**: Enrages below 30% HP for +50% ATK
 - **Basilisk**: 15% petrify chance skips player's next turn
@@ -101,10 +126,56 @@ Guard reduces enemy damage by 30%
 
 ## UI
 
-- **Left Panel**: Health bar, equipped gear (colored by rarity), stats, EXP progress
-- **Center**: Combat log with color-coded messages
+- **Left Panel**: Health bar, equipped gear (colored by rarity), stats, EXP progress, NG+ tier
+- **Center**: Battle stage (monster sprites with mini HP bars), combat log with color-coded messages
 - **Right Panel**: Floor preview, monster health bars, floor status
 - **Bottom**: Action buttons (Attack, Slash, Guard, Potion, Power Strike/Cleave, Ascend, Rest, Push Deeper, Retreat, Shop, Bag)
+
+## Customizing Monster Sprites
+
+The battle stage sprites are placeholder CSS shapes — designed to be swapped out for your own art. Everything lives in `rpg_combat.html`.
+
+### How it works
+- Each monster's look is **one CSS class** (`.sprite-slime`, `.sprite-goblin`, ...) plus optional animation classes.
+- The `SPRITES` object in the JavaScript maps each `templateKey` to its base class and effects:
+  ```js
+  const SPRITES = {
+    slime: { base: 'sprite-slime', split: 'fx-spawn' },
+    ancientDragon: { base: 'sprite-dragon' },
+    ...
+  };
+  ```
+- `renderBattleStage()` builds one `.monster-card` per monster (sprite + name + mini HP bar) and the combat code calls `animateMonster(index, 'fx-hit')` etc. — animations are pure CSS classes, no rendering logic to touch.
+
+### Quick changes (recommended start)
+1. Open `rpg_combat.html` and find the block marked `CUSTOM SPRITE OVERRIDES` at the end of the `<style>` section.
+2. Override any sprite there, e.g.:
+   ```css
+   .sprite-slime {
+     background: url('my-slime-art.png') center/contain no-repeat;
+     border-radius: 0; box-shadow: none;
+   }
+   ```
+   Later rules win, so your overrides beat the defaults.
+3. To swap the look for an entire monster, change its `base` in `SPRITES` — e.g. `'sprite-dragon'` for a recolored slime — or point it at a brand-new class you define.
+
+### Using your own animation/frames
+- **Static PNG/GIF**: use `background-image` as above. Animated GIFs play automatically in the browser.
+- **Sprite sheets**: define a keyframe using `steps()`:
+  ```css
+  @keyframes my-slime-walk {
+    from { background-position: 0 0; }
+    to { background-position: -160px 0; }
+  }
+  .sprite-slime { animation: my-slime-walk 0.8s steps(4) infinite; }
+  ```
+  (In this game, `steps(N)` should equal your frame count minus 1.)
+- **Custom FX**: the combat code triggers classes like `fx-hit`, `fx-spawn`, `fx-death` on the `.monster-card`, and `anim-attack` on the card. Redefine the matching `@keyframes` (or the `.monster-card.<fx> .sprite` rules) in the overrides block.
+- **Per-monster attack animation**: give that monster's card its own rule, e.g.
+  ```css
+  .monster-card.anim-attack .sprite-slime { animation: my-slime-bite 0.35s; }
+  ```
+- If you build a full sprite-sheet system later, you only need to replace `renderBattleStage()` and the `SPRITES` config — the combat logic never touches the stage directly.
 
 ## File Structure
 

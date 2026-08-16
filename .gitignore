@@ -6,3 +6,4 @@ patch_basic.ps1
 patch_css2.ps1
 patch_replace.ps1
 *.ps1
+/.commandcode
